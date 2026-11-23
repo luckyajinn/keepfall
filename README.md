@@ -38,7 +38,7 @@ npm run build
 
 The files end up in `dist/`. Run `npm run preview` to try the build.
 
-Adding `?seed=123` to the address gives a run that plays out the same way each time, which helps when testing.
+Adding `?seed=123` to the address gives the same floor layouts and enemy placement each time, which helps when testing. Fights and rewards still play out differently, since they depend on what you do.
 
 ## Layout
 

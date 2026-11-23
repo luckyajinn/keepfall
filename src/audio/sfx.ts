@@ -1,6 +1,6 @@
 // Sound effects made in code with the Web Audio API. There are no sound files.
-// Browsers only allow sound after the player presses a key, so the audio
-// context is created on the first key press.
+// Browsers only allow sound after the player presses a key, clicks or taps, so the audio
+// context is created on the first key press, click or tap.
 
 export type SfxName =
   | 'move'
@@ -55,7 +55,7 @@ class Sfx {
     }
   }
 
-  /** Call on a key press so the browser lets sound play. */
+  /** Call on a key press, click or tap so the browser lets sound play. */
   unlock(): void {
     this.ready();
   }

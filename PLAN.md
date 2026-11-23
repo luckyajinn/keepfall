@@ -2,38 +2,29 @@
 
 Written 2026-11-23. A planning pass read all of the code, and its claims were then checked against the files. Three of the bugs below were also reproduced in a browser.
 
-Nothing in this plan is approved yet. The owner picks what gets built and in what order. See "Questions for the owner" at the end.
+Item 1 (the bug fixes) is done, at the owner's request. Nothing else in this plan is approved yet. The owner picks what gets built and in what order. See "Questions for the owner" at the end.
 
 Effort sizes: small is under about 150 lines, medium is 150 to 400, large is over 400.
 
-## Bugs in the current game
+## Bugs found and fixed
 
-Reproduced in a browser:
+All nine bugs from the planning pass were fixed on 2026-11-23. Each fix has its own browser tests, and the combined code passed full test runs.
 
-1. A potion can be wasted at full health. `Battle.act` in `src/battle/battle.ts` and `BattleScreen.choose` in `src/battle/battleScreen.ts` only check that a potion is left. The potion and the turn are spent and the log says "heal 0".
-2. The boss enrage can be late. The enrage check is only in the Attack branch of `Battle.act`. Thorn Ring damage took the boss from 71 to 61 health (half is 70) with no enrage.
-3. Two hidden enemies next to the same tile: only one ambushes. `MapScreen.arrived` in `src/map/mapScreen.ts` finds the first hidden enemy next to the knight, and the check is not run again after that fight. `tryMove` only blocks visible enemies, so the knight can then walk onto the second hidden enemy's tile and stand on it.
-
-Confirmed by reading the code:
-
-4. Floor 3 guards hit about as hard as the boss. `makeEnemyStats` in `src/entities/enemies.ts` gives floor 3 enemies 2.2 times their base attack: Tallow Wisp and Rafter Lurker 11, Rust Guard and Gate Hound 9. The boss has 10.
-5. `?seed=` only repeats floor 1. One random stream (`game.rng`) feeds floors, fights and rewards, so the layout of floor 2 depends on how the floor 1 fights went. `README.md` overstates what the seed does.
-6. The battle screen reads meaning out of log text. `battleScreen.ts` checks `text.includes('guard holds')` to pick the block sound and `text.startsWith('Your Thorn')` to skip the lunge. Rewording those lines in `battle.ts` would quietly break sound or animation.
-7. Touch-only devices would get no sound. `src/main.ts` unlocks sound only on `keydown`.
-8. The lose screen always draws the boss, even when the knight fell on floor 1 (`EndScreen.render` in `src/ui/screens.ts`).
-9. Small leftovers: `this.age % 1 < 2` in `battleScreen.ts` is always true, `save.bestFloor` is saved but never shown, and `loadSave` never reads the `version` field.
+1. A potion could be wasted at full health. Now no potion is used and no turn passes, the menu says "You are already at full health.", and the Potion row is dimmed.
+2. The boss enrage could be late when Thorn Ring damage took him below half health. The check now runs after Thorn Ring damage as well.
+3. With two hidden enemies next to the same tile, only one ambushed, and the knight could walk onto the other. The ambush check now runs whenever the knight stands still, and stepping into a hidden enemy's tile starts its ambush.
+4. Floor 3 guards hit as hard as the boss. Enemy attack growth is now capped at 1.65 times, so floor 3 guards have 7 or 8 attack against the boss's 10. The boss has 150 health (was 140) to keep the win rates where they were.
+5. `?seed=` only repeated floor 1. Each run now has its own seed and each floor is built from that seed and its floor number, so the floor layouts of a seed are always the same. Fights and rewards still depend on what the player does.
+6. The battle screen read meaning out of log text. Battle events now carry `blocked` and `source` fields.
+7. Touch-only devices would get no sound. Sound now unlocks on the first key press, click or tap. Not yet tried on a real phone.
+8. The lose screen always drew the boss. It now draws the enemy that beat the knight and names it.
+9. Small leftovers: the always true check in the battle screen is gone, the best floor is shown on the title screen, and `loadSave` only accepts a save whose `version` is 1.
 
 ## Do next
 
-### 1. Bug fixes (small)
+### 1. Bug fixes (small). Done
 
-Fix bugs 1, 2, 3 and 6 above.
-
-- Potion: in `BattleScreen.choose`, when `k.hp >= maxHp(k)`, log "You are already at full health." and play `deny`. Add the same guard in `Battle.act`.
-- Enrage: move the check into a private `checkEnrage(events)` in `Battle` and call it after Attack damage and after Thorn Ring damage.
-- Hidden enemies: in `MapScreen`, run the ambush check again when the map comes back after a fight, and treat stepping into a hidden enemy's tile as an ambush.
-- Log text: add `blocked?: boolean` and `source?: 'thorn'` to `BattleEvent` and use them in `BattleScreen` in place of the text checks.
-- Check: a dev import of `/src/battle/battle.ts` for the potion and enrage cases, and a browser test with two hidden enemies next to one tile.
+See "Bugs found and fixed" above.
 
 ### 2. Sound check screen and volume (small)
 
@@ -49,15 +40,14 @@ Time, potions used, damage taken and the run's seed on the win and lose screens.
 
 - `RunState` in `src/game.ts`: add `seconds`, `potionsUsed`, `damageTaken` and `seed`. Add `dt` to `seconds` in `Game.update` while a run is active.
 - `RunSummary` and `EndScreen.render` in `src/ui/screens.ts`: show the new rows. The screen has room for 5 rows today (a sixth would land on the "Press Enter" line), so the layout needs smaller steps or two columns.
-- Seed fix for bug 5: give each floor its own `Rng` made from the run seed and floor number, and give fights and rewards a separate stream.
-- Risk: existing fixed seeds will produce different maps afterwards.
+- The run seed already exists (`RunState.seed` in `src/game.ts`), so showing it is cheap.
 
 ### 4. Touch controls (medium)
 
 A direction pad plus OK, Back and Sound buttons under the game on phones and tablets. `index.html` already has `#touch-controls` and the `--touch-h` variable, and `Input.press` and `Input.release` were written for this.
 
 - New `src/ui/touch.ts` that builds buttons with a `data-action`, calls `input.press` on `pointerdown` and `input.release` on `pointerup`, `pointercancel` and `lostpointercapture`. Direction buttons must stay held, because the map moves by `input.heldDir()`.
-- Show the controls on the first touch, set `--touch-h` and call `resize()` from `src/main.ts`. Also unlock sound on the first `pointerdown` (bug 7).
+- Show the controls on the first touch, set `--touch-h` and call `resize()` from `src/main.ts`. Sound already unlocks on a tap through the listeners in `src/main.ts`. Do not add a `pointerdown` only unlock: on touch, a tap counts for sound only when the finger lifts.
 - Hint text that names keys (map, battle, vendor, shop, title) needs a touch wording.
 - Check: Playwright with `hasTouch` and `isMobile`, tap OK on the title and hold the right button on the map.
 
@@ -89,7 +79,7 @@ One chest per floor (gold or a potion) and sometimes a fountain that heals once.
 Enemies that need new tactics. Floors 2 and 3 share one enemy pool and only two traits exist (`heavy` and `double`).
 
 - New `EnemyKind` and `EnemyTrait` values in `src/entities/enemies.ts`, for example one that heals from the damage it deals and one that takes half damage unless the hit is a strike back from Guard. New branches in `Battle`, new sprites in `src/render/sprites.ts`.
-- Also a chance to fix bug 4 by giving the boss floor its own enemy mix or a lower multiplier.
+- Floor 3 Tallow Wisps and Rafter Lurkers have the same attack as on floor 2 since the attack cap. A boss floor enemy mix of its own would give that floor more of a step up.
 
 ### 9. Boss rework (small, then medium)
 

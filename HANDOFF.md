@@ -12,6 +12,8 @@ The first playable milestone is built, runs in a browser, and is merged to `main
 
 Step 7 (a balance pass and sound effects) is built, checked in a browser, and merged to `main` and pushed (owner OK given on 2026-11-23). Every step in the order of work is now done.
 
+All nine bugs listed in `PLAN.md` were fixed on 2026-11-23 by five agents working in parallel, each reviewed and then tested together. The fixes are on the branch `bug-fixes`.
+
 Built and checked in headless Chromium:
 
 - Start screen, how to play screen
@@ -51,21 +53,22 @@ Not done yet: touch controls. The sound has only been checked for running withou
 ## Open items
 
 - The merged branches `first-playable` and `balance-and-sound` are still on GitHub. The cloud session can not delete branches (the git proxy refuses it), so the owner deletes them on the repo's Branches page.
-- Next: `PLAN.md` holds the plan for the next features and a list of known bugs. Nothing in it is approved yet. The owner picks what gets built and in what order.
+- Next: `PLAN.md` holds the plan for the next features and the list of bugs that were fixed. The bug fixes are done. Nothing else in it is approved yet. The owner picks what gets built and in what order.
+- Sound on touch devices has only been checked in a headless browser, not on a real phone.
 
 ## Balance notes
 
-Numbers after the balance pass on 2026-11-23:
+Numbers after the bug fixes on 2026-11-23:
 
-- Enemy attack went up by 1 for every regular enemy. The Ork has 140 health and 10 attack. A level up heals 40% of max health (was 50%).
+- Regular enemies grow by 1.6 times on floor 2 and 2.2 times on floor 3 in health. Attack growth stops at 1.65 times, so floor 3 enemies have 5 to 8 attack. The Ork has 150 health and 10 attack. A level up heals 40% of max health.
 - Simulated first runs with no shop upgrades (3000 runs each, real battle rules, no map):
   - Skip every fight: wins 0%.
-  - Fight half the visible enemies, guard heavy blows: wins about 21%.
-  - Fight everything, guard heavy blows: wins about 71%.
-  - Fight everything, never guard: wins about 26%.
-  - Fight everything but buy nothing from the vendor: wins about 13%. Vendor spending matters.
-- With a few cheap shop upgrades (Vigor 2, Might 1) a careful full clear wins about 98%. The shop makes the game easy fast. If that feels too quick, raise shop prices or lower what each upgrade gives.
-- Four full runs played in the browser by a test script: 2 won, 2 lost at the Ork.
+  - Fight half the visible enemies, guard heavy blows: wins about 20%.
+  - Fight everything, guard heavy blows: wins about 75%.
+  - Fight everything, never guard: wins about 27%.
+  - Fight everything but buy nothing from the vendor: wins about 16%. Vendor spending matters.
+- With a few cheap shop upgrades (Vigor 2, Might 1) a careful full clear wins about 99%. The shop makes the game easy fast. If that feels too quick, raise shop prices or lower what each upgrade gives.
+- Floor 3 Tallow Wisps and Rafter Lurkers have the same attack as on floor 2 and only gain health. That was the price of keeping every guard clearly below the boss.
 - Shop prices rise with each purchase of the same upgrade. Vendor prices rise with each purchase in the run.
 
 ## Order of work
