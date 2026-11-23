@@ -26,6 +26,8 @@ export interface Screen {
 export interface RunState {
   knight: Knight;
   floorNum: number;
+  /** Each floor is built from this and its floor number, so fights and rewards can't change the maps. */
+  seed: number;
   kills: number;
   startGold: number;
   /** Gold spent at the vendor, so the end screen can show gold earned. */
@@ -92,14 +94,22 @@ export class Game {
 
   startRun(): void {
     const knight = newKnight(this.save);
-    this.run = { knight, floorNum: 1, kills: 0, startGold: knight.gold, spent: 0, vendorCounts: newVendorCounts() };
+    const seed = this.rng.int(0, 0xffffffff);
+    this.run = { knight, floorNum: 1, seed, kills: 0, startGold: knight.gold, spent: 0, vendorCounts: newVendorCounts() };
     this.enterFloor(1);
   }
 
   private enterFloor(num: number): void {
     if (!this.run) return;
     this.run.floorNum = num;
-    this.map = new MapScreen(this, generateFloor(num, this.rng));
+    // Mix the run seed and floor number (the murmur3 finish step), so each floor gets an unrelated seed.
+    // A plain run seed + num would give run 7 floor 2 the same map as run 8 floor 1. And Rng moves its
+    // seed by a fixed step on each draw, so two seeds a few steps apart would share most of a stream.
+    let h = this.run.seed ^ Math.imul(num, 0x9e3779b9);
+    h = Math.imul(h ^ (h >>> 16), 0x85ebca6b);
+    h = Math.imul(h ^ (h >>> 13), 0xc2b2ae35);
+    h ^= h >>> 16;
+    this.map = new MapScreen(this, generateFloor(num, new Rng(h)));
     this.screen = this.map;
   }
 
