@@ -58,13 +58,16 @@ export class MapScreen implements Screen {
       }
     }
     if (this.moveT >= 1) {
+      // Checked every frame the knight stands still, so a second ambusher
+      // next to the same tile still jumps out when the map comes back after a fight.
+      if (this.checkAmbush()) return;
       const dir = this.game.input.heldDir();
       if (dir) this.tryMove(dir);
     }
   }
 
-  private visibleEnemyAt(x: number, y: number): MapEnemy | undefined {
-    return this.floor.enemies.find((e) => !e.hidden && e.x === x && e.y === y);
+  private enemyAt(x: number, y: number): MapEnemy | undefined {
+    return this.floor.enemies.find((e) => e.x === x && e.y === y);
   }
 
   private tryMove(dir: Dir): void {
@@ -73,10 +76,12 @@ export class MapScreen implements Screen {
     const nx = this.x + v.x;
     const ny = this.y + v.y;
     if (tileAt(this.floor, nx, ny) === Tile.Wall) return;
-    const enemy = this.visibleEnemyAt(nx, ny);
+    const enemy = this.enemyAt(nx, ny);
     if (enemy) {
       // Touching an enemy starts a fight. A dazed one just blocks the way for a moment.
-      if (enemy.dazed <= 0) this.startEncounter(enemy, false);
+      // A hidden one is never walked onto: stepping into it springs its ambush.
+      if (enemy.hidden) this.ambush(enemy);
+      else if (enemy.dazed <= 0) this.startEncounter(enemy, false);
       return;
     }
     this.fromX = this.x;
@@ -93,13 +98,20 @@ export class MapScreen implements Screen {
       this.game.floorCleared();
       return true;
     }
-    const ambusher = this.floor.enemies.find((e) => e.hidden && Math.abs(e.x - this.x) + Math.abs(e.y - this.y) === 1);
-    if (ambusher) {
-      ambusher.hidden = false;
-      this.startEncounter(ambusher, true);
-      return true;
-    }
     return false;
+  }
+
+  /** A hidden enemy next to the standing knight jumps out, one at a time. Returns true if one did. */
+  private checkAmbush(): boolean {
+    const ambusher = this.floor.enemies.find((e) => e.hidden && Math.abs(e.x - this.x) + Math.abs(e.y - this.y) === 1);
+    if (!ambusher) return false;
+    this.ambush(ambusher);
+    return true;
+  }
+
+  private ambush(enemy: MapEnemy): void {
+    enemy.hidden = false;
+    this.startEncounter(enemy, true);
   }
 
   private startEncounter(enemy: MapEnemy, ambush: boolean): void {
