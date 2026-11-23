@@ -1,5 +1,5 @@
 // Enemy types and their stats.
-// Stats grow on higher floors. The boss has fixed stats.
+// Stats grow on higher floors. Attack grows less than health after floor 2. The boss has fixed stats.
 
 export type EnemyKind = 'rat' | 'guard' | 'wisp' | 'hound' | 'lurker' | 'boss';
 export type EnemyTrait = 'none' | 'heavy' | 'double';
@@ -33,19 +33,26 @@ const TEMPLATES: Record<EnemyKind, Template> = {
   wisp: { name: 'Tallow Wisp', hp: 9, atk: 5, xp: 8, gold: 6, trait: 'none' },
   hound: { name: 'Gate Hound', hp: 15, atk: 4, xp: 10, gold: 7, trait: 'double' },
   lurker: { name: 'Rafter Lurker', hp: 12, atk: 5, xp: 9, gold: 8, trait: 'none' },
-  boss: { name: 'Mogrum the Ork', hp: 140, atk: 10, xp: 60, gold: 60, trait: 'heavy', heavyEvery: 2 },
+  boss: { name: 'Mogrum the Ork', hp: 150, atk: 10, xp: 60, gold: 60, trait: 'heavy', heavyEvery: 2 },
 };
+
+/**
+ * The most that attack can grow. Floor 2 is just under it, so only the boss floor is held back.
+ * On floor 3 this gives guards and hounds 7 attack and wisps and lurkers 8, below the boss's 10.
+ */
+const MAX_ATK_POWER = 1.65;
 
 export function makeEnemyStats(kind: EnemyKind, floorNum: number): EnemyStats {
   const t = TEMPLATES[kind];
   const boss = kind === 'boss';
   const power = boss ? 1 : 1 + 0.6 * (floorNum - 1);
+  const atkPower = Math.min(power, MAX_ATK_POWER);
   const loot = boss ? 1 : 1 + 0.5 * (floorNum - 1);
   return {
     kind,
     name: t.name,
     maxHp: Math.round(t.hp * power),
-    atk: Math.max(1, Math.round(t.atk * power)),
+    atk: Math.max(1, Math.round(t.atk * atkPower)),
     xp: Math.round(t.xp * loot),
     gold: Math.round(t.gold * loot),
     trait: t.trait,
