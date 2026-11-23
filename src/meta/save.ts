@@ -34,7 +34,9 @@ export function loadSave(): SaveData {
   try {
     const raw = localStorage.getItem(KEY);
     if (!raw) return save;
-    const data = JSON.parse(raw) as Partial<SaveData>;
+    const data = JSON.parse(raw) as Partial<SaveData> | null;
+    // A save from another version, or with no version, is not used.
+    if (!data || data.version !== 1) return save;
     save.gold = wholeNumber(data.gold);
     save.runs = wholeNumber(data.runs);
     save.wins = wholeNumber(data.wins);

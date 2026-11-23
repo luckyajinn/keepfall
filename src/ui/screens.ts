@@ -9,6 +9,7 @@ import type { FloorReward } from '../items/rewards';
 import { TRINKETS } from '../items/trinkets';
 import { VENDOR_ITEMS, buyFromVendor, vendorPrice } from '../items/vendor';
 import { SHOP_ITEMS, buyFromShop, isMaxed, shopPrice } from '../meta/shop';
+import type { EnemyKind } from '../entities/enemies';
 import { attackPower, guardShare, maxHp } from '../entities/knight';
 import { FINAL_FLOOR } from '../map/tiles';
 import { sfx } from '../audio/sfx';
@@ -111,7 +112,8 @@ export class StartScreen implements Screen {
     const s = this.game.save;
     iconCoin(ctx, 72, 408, 16);
     text(ctx, `${s.gold} gold saved`, 86, 414, { size: 16, color: C.gold, shadow: true });
-    text(ctx, `Runs ${s.runs}    Wins ${s.wins}`, 64, 438, { size: 14, color: C.inkDim, shadow: true });
+    const best = s.bestFloor > 0 ? `    Best floor ${s.bestFloor}` : '';
+    text(ctx, `Runs ${s.runs}    Wins ${s.wins}${best}`, 64, 438, { size: 14, color: C.inkDim, shadow: true });
     text(ctx, 'W and S to choose. Enter to pick.', W - 20, H - 16, { size: 13, color: C.inkDim, align: 'right', shadow: true });
   }
 }
@@ -268,6 +270,15 @@ export interface RunSummary {
   kills: number;
   goldEarned: number;
   goldSaved: number;
+  /** The enemy that beat the knight. Only set when the run was lost. */
+  foeKind?: EnemyKind;
+  foeName?: string;
+}
+
+/** "A Cellar Rat", "An ...", or the boss's own name. */
+function foeTitle(kind: EnemyKind, name: string): string {
+  if (kind === 'boss') return name;
+  return `${/^[aeiou]/i.test(name) ? 'An' : 'A'} ${name}`;
 }
 
 export class EndScreen implements Screen {
@@ -304,9 +315,16 @@ export class EndScreen implements Screen {
     } else {
       text(ctx, 'You have fallen', W / 2, 135, { size: 40, bold: true, align: 'center', color: C.ember });
       text(ctx, `The keep holds, for now. You reached floor ${s.floorNum}.`, W / 2, 168, { size: 16, italic: true, align: 'center', color: C.inkDim });
-      ctx.globalAlpha = 0.5;
-      drawEnemy(ctx, 'boss', W / 2, 240, 80, t);
-      ctx.globalAlpha = 1;
+      if (s.foeKind) {
+        // The boss is drawn a little larger, and lower so its raised club stays clear of the line above.
+        const boss = s.foeKind === 'boss';
+        ctx.globalAlpha = 0.7;
+        drawEnemy(ctx, s.foeKind, W / 2, boss ? 234 : 228, boss ? 72 : 68, t);
+        ctx.globalAlpha = 1;
+        if (s.foeName) {
+          text(ctx, `${foeTitle(s.foeKind, s.foeName)} got the better of you.`, W / 2, 290, { size: 15, align: 'center', color: C.inkDim });
+        }
+      }
     }
     const rows: [string, string][] = [
       ['Level reached', `${s.level}`],

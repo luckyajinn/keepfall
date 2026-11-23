@@ -120,7 +120,7 @@ export class Game {
   endBattle(outcome: Outcome, enemy: MapEnemy): void {
     if (!this.run || !this.map) return;
     if (outcome === 'lost') {
-      this.endRun(false);
+      this.endRun(false, enemy);
       return;
     }
     if (outcome === 'won') {
@@ -156,7 +156,8 @@ export class Game {
     this.enterFloor(Math.min(FINAL_FLOOR, this.run.floorNum + 1));
   }
 
-  private endRun(won: boolean): void {
+  /** `foe` is the enemy that beat the knight, when the run was lost. */
+  private endRun(won: boolean, foe?: MapEnemy): void {
     const run = this.run;
     if (!run) return;
     const k = run.knight;
@@ -174,6 +175,8 @@ export class Game {
       kills: run.kills,
       goldEarned: earned,
       goldSaved: k.gold,
+      foeKind: foe?.stats.kind,
+      foeName: foe?.stats.name,
     });
     this.run = null;
     this.map = null;

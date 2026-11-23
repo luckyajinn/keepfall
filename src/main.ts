@@ -7,13 +7,28 @@ import { sfx } from './audio/sfx';
 const canvas = document.getElementById('game') as HTMLCanvasElement;
 const ctx = canvas.getContext('2d')!;
 
-// Add ?seed=123 to the address for a run that plays out the same way each time.
+// Add ?seed=123 to the address to get the same floor layouts each time.
+// Fights can still go differently, since they depend on what the player does.
 const seedParam = new URLSearchParams(location.search).get('seed');
 const seed = seedParam !== null && seedParam !== '' && Number.isFinite(Number(seedParam)) ? Number(seedParam) : Date.now();
 
 const input = new Input(window);
-// Browsers only let sound start after a key press.
-window.addEventListener('keydown', () => sfx.unlock(), { once: true });
+// Browsers only let sound start after a key press, a click or a tap.
+// A tap only counts once the finger lifts, and the Escape key does not count,
+// so try on each of these events and stop listening after the first one that counts.
+const UNLOCK_EVENTS = ['keydown', 'pointerdown', 'pointerup', 'touchend'] as const;
+
+function unlockSound(e: Event): void {
+  sfx.unlock();
+  const touchStart = e.type === 'pointerdown' && (e as PointerEvent).pointerType !== 'mouse';
+  const mouseUp = e.type === 'pointerup' && (e as PointerEvent).pointerType === 'mouse';
+  const escape = e.type === 'keydown' && (e as KeyboardEvent).key === 'Escape';
+  if (touchStart || mouseUp || escape) return;
+  for (const name of UNLOCK_EVENTS) window.removeEventListener(name, unlockSound);
+}
+
+for (const name of UNLOCK_EVENTS) window.addEventListener(name, unlockSound);
+
 const game = new Game(input, seed);
 
 let scale = 1;
