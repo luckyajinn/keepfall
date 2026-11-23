@@ -10,7 +10,7 @@ The repo was renamed from `knightfall` to `keepfall` on 2026-11-23.
 
 The first playable milestone is built, runs in a browser, and is merged to `main` and pushed (owner OK given in the project chat on 2026-11-23).
 
-Step 7 (a balance pass and sound effects) is built and checked in a browser, but it is not committed or pushed yet. It needs the owner's OK.
+Step 7 (a balance pass and sound effects) is built, checked in a browser, and merged to `main` and pushed (owner OK given on 2026-11-23). Every step in the order of work is now done.
 
 Built and checked in headless Chromium:
 
@@ -50,9 +50,8 @@ Not done yet: touch controls. The sound has only been checked for running withou
 
 ## Open items
 
-- The merged branch `first-playable` is still on GitHub at the same commit as `main`. The owner OK'd deleting it, but the cloud session's git proxy refused the delete (HTTP 403). The owner can delete it on the repo's Branches page.
-- Step 7 is waiting for the owner's OK to commit and push.
-- After that: touch controls, and more balance tuning from real play.
+- The merged branches `first-playable` and `balance-and-sound` are still on GitHub. The cloud session can not delete branches (the git proxy refuses it), so the owner deletes them on the repo's Branches page.
+- Next: the owner asked for a plan of the next features. Touch controls and more balance tuning from real play are known candidates.
 
 ## Balance notes
 
@@ -77,7 +76,7 @@ Numbers after the balance pass on 2026-11-23:
 4. Gear, XP, gold, potions and floor rewards. Done
 5. The boss floor, and the win and lose screens. Done
 6. The shop between runs, with saving. Done
-7. A balance pass and simple sound effects. Done, waiting for the owner's OK to commit and push
+7. A balance pass and simple sound effects. Done
 
 ## Project rules
 
