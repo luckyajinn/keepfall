@@ -6,11 +6,25 @@ import { Ctx, H, W, bar, drawMenu, ellipse, fillRR, panel, text, wrapText } from
 import { drawEnemy, drawKnight } from '../render/sprites';
 import type { MapEnemy } from '../entities/enemies';
 import { attackPower, guardShare, maxHp } from '../entities/knight';
-import { Battle, BattleAction, BattleEvent } from './battle';
+import { Anim, Battle, BattleAction, BattleEvent } from './battle';
+import { SfxName, sfx } from '../audio/sfx';
 
 const EVENT_TIME = 1.05;
 const MIN_EVENT_TIME = 0.18;
 const ACTIONS: readonly BattleAction[] = ['attack', 'guard', 'potion', 'flee'];
+
+const ANIM_SOUND: Partial<Record<Anim, SfxName>> = {
+  enemyHit: 'hit',
+  knightHit: 'hurt',
+  guard: 'guard',
+  heal: 'heal',
+  windup: 'windup',
+  flee: 'flee',
+  enemyDown: 'down',
+  knightDown: 'lose',
+  reward: 'coin',
+  levelUp: 'levelUp',
+};
 
 export class BattleScreen implements Screen {
   readonly battle: Battle;
@@ -50,7 +64,12 @@ export class BattleScreen implements Screen {
     }
     this.current = this.queue.shift() ?? null;
     this.eventT = 0;
-    if (this.current) this.log.push(this.current.text);
+    if (this.current) {
+      this.log.push(this.current.text);
+      const blocked = this.current.anim === 'knightHit' && this.current.text.includes('guard holds');
+      const sound = blocked ? 'block' : ANIM_SOUND[this.current.anim];
+      if (sound) sfx.play(sound);
+    }
   }
 
   /** True when all events have played and the player can pick an action. */
@@ -84,8 +103,13 @@ export class BattleScreen implements Screen {
 
     if (!this.inMenu) return;
     for (const a of pressed) {
-      if (a === 'up') this.menuIndex = (this.menuIndex + ACTIONS.length - 1) % ACTIONS.length;
-      else if (a === 'down') this.menuIndex = (this.menuIndex + 1) % ACTIONS.length;
+      if (a === 'up') {
+        this.menuIndex = (this.menuIndex + ACTIONS.length - 1) % ACTIONS.length;
+        sfx.play('move');
+      } else if (a === 'down') {
+        this.menuIndex = (this.menuIndex + 1) % ACTIONS.length;
+        sfx.play('move');
+      }
       else if (a === 'confirm') {
         this.choose(ACTIONS[this.menuIndex]);
         return;
@@ -101,6 +125,7 @@ export class BattleScreen implements Screen {
     const k = this.game.run!.knight;
     if (action === 'potion' && k.potions <= 0) {
       this.log.push('You have no potions left.');
+      sfx.play('deny');
       return;
     }
     this.push(this.battle.act(action));

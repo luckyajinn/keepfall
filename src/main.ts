@@ -2,6 +2,7 @@
 import { Game } from './game';
 import { Input } from './input';
 import { H, W } from './render/draw';
+import { sfx } from './audio/sfx';
 
 const canvas = document.getElementById('game') as HTMLCanvasElement;
 const ctx = canvas.getContext('2d')!;
@@ -11,6 +12,8 @@ const seedParam = new URLSearchParams(location.search).get('seed');
 const seed = seedParam !== null && seedParam !== '' && Number.isFinite(Number(seedParam)) ? Number(seedParam) : Date.now();
 
 const input = new Input(window);
+// Browsers only let sound start after a key press.
+window.addEventListener('keydown', () => sfx.unlock(), { once: true });
 const game = new Game(input, seed);
 
 let scale = 1;
@@ -48,5 +51,6 @@ requestAnimationFrame(frame);
 
 if (import.meta.env.DEV) {
   // A handle for testing in the browser console while developing.
-  (window as unknown as { keepfall: Game }).keepfall = game;
+  (window as unknown as { keepfall: Game; keepfallSfx: typeof sfx }).keepfall = game;
+  (window as unknown as { keepfallSfx: typeof sfx }).keepfallSfx = sfx;
 }

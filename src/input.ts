@@ -2,7 +2,7 @@
 // Touch controls can be added later by calling press() and release().
 
 export type Dir = 'up' | 'down' | 'left' | 'right';
-export type Action = Dir | 'confirm' | 'cancel' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8';
+export type Action = Dir | 'confirm' | 'cancel' | 'mute' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8';
 
 const KEY_MAP: Record<string, Action> = {
   KeyW: 'up',
@@ -17,6 +17,7 @@ const KEY_MAP: Record<string, Action> = {
   NumpadEnter: 'confirm',
   Space: 'confirm',
   Escape: 'cancel',
+  KeyM: 'mute',
   Digit1: '1',
   Digit2: '2',
   Digit3: '3',

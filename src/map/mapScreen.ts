@@ -9,6 +9,7 @@ import { drawHud, HUD_H } from '../ui/hud';
 import type { MapEnemy } from '../entities/enemies';
 import { Floor, tileAt } from './floor';
 import { COLS, FINAL_FLOOR, ROWS, TILE, Tile } from './tiles';
+import { sfx } from '../audio/sfx';
 
 const KNIGHT_STEP = 0.13;
 const ENEMY_STEP = 0.32;
@@ -83,6 +84,7 @@ export class MapScreen implements Screen {
     this.x = nx;
     this.y = ny;
     this.moveT = 0;
+    sfx.play('step');
   }
 
   /** Runs when the knight finishes a step. Returns true if something took over the screen. */
@@ -102,6 +104,7 @@ export class MapScreen implements Screen {
 
   private startEncounter(enemy: MapEnemy, ambush: boolean): void {
     this.encounter = { enemy, ambush, t: 0 };
+    sfx.play(ambush ? 'ambush' : 'encounter');
   }
 
   private updateEnemies(dt: number): void {

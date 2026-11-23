@@ -28,12 +28,12 @@ interface Template {
 }
 
 const TEMPLATES: Record<EnemyKind, Template> = {
-  rat: { name: 'Cellar Rat', hp: 9, atk: 2, xp: 5, gold: 3, trait: 'none' },
-  guard: { name: 'Rust Guard', hp: 16, atk: 3, xp: 9, gold: 6, trait: 'heavy', heavyEvery: 2 },
-  wisp: { name: 'Tallow Wisp', hp: 9, atk: 4, xp: 8, gold: 6, trait: 'none' },
-  hound: { name: 'Gate Hound', hp: 15, atk: 3, xp: 10, gold: 7, trait: 'double' },
-  lurker: { name: 'Rafter Lurker', hp: 12, atk: 4, xp: 9, gold: 8, trait: 'none' },
-  boss: { name: 'Mogrum the Ork', hp: 125, atk: 10, xp: 60, gold: 60, trait: 'heavy', heavyEvery: 2 },
+  rat: { name: 'Cellar Rat', hp: 9, atk: 3, xp: 5, gold: 3, trait: 'none' },
+  guard: { name: 'Rust Guard', hp: 16, atk: 4, xp: 9, gold: 6, trait: 'heavy', heavyEvery: 2 },
+  wisp: { name: 'Tallow Wisp', hp: 9, atk: 5, xp: 8, gold: 6, trait: 'none' },
+  hound: { name: 'Gate Hound', hp: 15, atk: 4, xp: 10, gold: 7, trait: 'double' },
+  lurker: { name: 'Rafter Lurker', hp: 12, atk: 5, xp: 9, gold: 8, trait: 'none' },
+  boss: { name: 'Mogrum the Ork', hp: 140, atk: 10, xp: 60, gold: 60, trait: 'heavy', heavyEvery: 2 },
 };
 
 export function makeEnemyStats(kind: EnemyKind, floorNum: number): EnemyStats {

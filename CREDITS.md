@@ -4,7 +4,7 @@ KeepFall is an original game. Its name, creatures, floors and look were made for
 
 ## Art and sound
 
-All art is drawn in code with canvas shapes. No outside image, font or sound files are used. Text uses the serif font already on the player's device.
+All art is drawn in code with canvas shapes. All sound effects are made in code with the Web Audio API. No outside image, font or sound files are used. Text uses the serif font already on the player's device.
 
 ## Tools
 

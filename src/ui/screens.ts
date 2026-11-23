@@ -11,14 +11,17 @@ import { VENDOR_ITEMS, buyFromVendor, vendorPrice } from '../items/vendor';
 import { SHOP_ITEMS, buyFromShop, isMaxed, shopPrice } from '../meta/shop';
 import { attackPower, guardShare, maxHp } from '../entities/knight';
 import { FINAL_FLOOR } from '../map/tiles';
+import { sfx } from '../audio/sfx';
 
 /** Moves a menu index with the up and down actions. Returns the picked row, or -1. */
 function menuInput(pressed: Action[], state: { index: number }, count: number): number {
   for (const a of pressed) {
-    if (a === 'up') state.index = (state.index + count - 1) % count;
-    else if (a === 'down') state.index = (state.index + 1) % count;
-    else if (a === 'confirm') return state.index;
-    else if (/^[1-8]$/.test(a) && Number(a) <= count) {
+    if (a === 'up' || a === 'down') {
+      state.index = (state.index + count + (a === 'up' ? -1 : 1)) % count;
+      sfx.play('move');
+    } else if (a === 'confirm') {
+      return state.index;
+    } else if (/^[1-8]$/.test(a) && Number(a) <= count) {
       state.index = Number(a) - 1;
       return state.index;
     }
@@ -89,6 +92,7 @@ export class StartScreen implements Screen {
 
   update(_dt: number, pressed: Action[]): void {
     const pick = menuInput(pressed, this.state, 3);
+    if (pick >= 0) sfx.play('pick');
     if (pick === 0) this.game.startRun();
     else if (pick === 1) this.game.showShop();
     else if (pick === 2) this.game.showHelp();
@@ -130,11 +134,12 @@ export class HelpScreen implements Screen {
       'In a fight, pick Attack, Guard, Potion or Flee. Guard blocks part of the next hit and makes your next Attack stronger. Guard when an enemy winds up a heavy blow.',
       'Clearing a floor upgrades your lowest level item, with a 1 in 4 chance of a trinket. A vendor then sells boosts that last for this run only.',
       'On floor 3 you must beat the Ork. When a run ends you keep your gold and can spend it in the shop on upgrades that last forever.',
+      'Press M at any time to turn the sound off or on.',
     ];
-    let y = 142;
+    let y = 136;
     for (const line of lines) {
       circle(ctx, 104, y - 5, 3, C.gold);
-      y = wrapText(ctx, line, 118, y, 570, 22, { size: 16 }) + 12;
+      y = wrapText(ctx, line, 118, y, 570, 21, { size: 15 }) + 9;
     }
     text(ctx, 'Press Enter to go back', W / 2, 526, { size: 14, align: 'center', color: C.gold });
   }
@@ -212,8 +217,10 @@ export class VendorScreen implements Screen {
     if (buyFromVendor(run.knight, item, run.vendorCounts)) {
       run.spent += price;
       this.note = `Bought: ${item.name}.`;
+      sfx.play('buy');
     } else {
       this.note = 'You do not have enough gold for that.';
+      sfx.play('deny');
     }
   }
 
@@ -269,7 +276,9 @@ export class EndScreen implements Screen {
   constructor(
     private readonly game: Game,
     private readonly sum: RunSummary,
-  ) {}
+  ) {
+    if (sum.won) sfx.play('win');
+  }
 
   update(dt: number, pressed: Action[]): void {
     this.age += dt;
@@ -340,9 +349,16 @@ export class ShopScreen implements Screen {
     }
     const item = SHOP_ITEMS[pick];
     const save = this.game.save;
-    if (isMaxed(item, save)) this.note = `${item.name} is as high as it goes.`;
-    else if (buyFromShop(item, save)) this.note = `Bought: ${item.name}. It is saved.`;
-    else this.note = 'You do not have enough gold for that.';
+    if (isMaxed(item, save)) {
+      this.note = `${item.name} is as high as it goes.`;
+      sfx.play('deny');
+    } else if (buyFromShop(item, save)) {
+      this.note = `Bought: ${item.name}. It is saved.`;
+      sfx.play('buy');
+    } else {
+      this.note = 'You do not have enough gold for that.';
+      sfx.play('deny');
+    }
   }
 
   render(ctx: Ctx): void {

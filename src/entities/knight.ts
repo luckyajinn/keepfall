@@ -67,7 +67,9 @@ export function heal(k: Knight, amount: number): number {
   return k.hp - before;
 }
 
-/** Adds XP and returns how many levels were gained. Each level heals half of max health. */
+const LEVEL_UP_HEAL = 0.4;
+
+/** Adds XP and returns how many levels were gained. Each level heals part of max health. */
 export function gainXp(k: Knight, amount: number): number {
   k.xp += amount;
   let levels = 0;
@@ -75,7 +77,7 @@ export function gainXp(k: Knight, amount: number): number {
     k.xp -= xpToNext(k.level);
     k.level++;
     levels++;
-    heal(k, Math.ceil(maxHp(k) * 0.5));
+    heal(k, Math.ceil(maxHp(k) * LEVEL_UP_HEAL));
   }
   return levels;
 }

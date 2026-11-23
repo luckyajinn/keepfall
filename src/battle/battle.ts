@@ -5,7 +5,7 @@ import { Knight, attackPower, gainXp, guardShare, has, heal, maxHp, potionHeal }
 
 export type BattleAction = 'attack' | 'guard' | 'potion' | 'flee';
 export type Outcome = 'ongoing' | 'won' | 'lost' | 'fled';
-export type Anim = 'none' | 'knightHit' | 'enemyHit' | 'guard' | 'heal' | 'windup' | 'flee' | 'enemyDown' | 'knightDown' | 'reward';
+export type Anim = 'none' | 'knightHit' | 'enemyHit' | 'guard' | 'heal' | 'windup' | 'flee' | 'enemyDown' | 'knightDown' | 'reward' | 'levelUp';
 
 /** One step of the fight to show on screen, with the health values after it. */
 export interface BattleEvent {
@@ -190,7 +190,7 @@ export class Battle {
     const levels = gainXp(k, xp);
     this.reward = { xp, gold, potion, levels };
     if (levels > 0) {
-      events.push(this.ev(`Level up! You are now level ${k.level}. Max health is ${maxHp(k)}.`, 'heal'));
+      events.push(this.ev(`Level up! You are now level ${k.level}. Max health is ${maxHp(k)}.`, 'levelUp'));
     }
     if (potion) {
       k.potions++;

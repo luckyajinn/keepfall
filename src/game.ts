@@ -14,6 +14,9 @@ import { giveFloorReward } from './items/rewards';
 import { VendorCounts, newVendorCounts } from './items/vendor';
 import { SaveData, loadSave, writeSave } from './meta/save';
 import { EndScreen, HelpScreen, RewardScreen, ShopScreen, StartScreen, VendorScreen } from './ui/screens';
+import { sfx } from './audio/sfx';
+import { C } from './render/colors';
+import { H, W, fillRR, text } from './render/draw';
 
 export interface Screen {
   update(dt: number, pressed: Action[]): void;
@@ -39,6 +42,8 @@ export class Game {
   map: MapScreen | null = null;
   /** Seconds since the game started. Used for animations. */
   time = 0;
+  /** A short message shown over any screen, such as "Sound off". */
+  private toast: { text: string; until: number } | null = null;
 
   constructor(input: Input, seed: number) {
     this.input = input;
@@ -49,7 +54,11 @@ export class Game {
 
   update(dt: number): void {
     this.time += dt;
-    const pressed = this.input.take();
+    const pressed = this.input.take().filter((action) => {
+      if (action !== 'mute') return true;
+      this.toast = { text: sfx.toggleMute() ? 'Sound off' : 'Sound on', until: this.time + 1.6 };
+      return false;
+    });
     if (pressed.length <= 1) {
       this.screen.update(dt, pressed);
       return;
@@ -61,6 +70,12 @@ export class Game {
 
   render(ctx: Ctx): void {
     this.screen.render(ctx);
+    if (this.toast && this.time < this.toast.until) {
+      ctx.globalAlpha = Math.min(1, (this.toast.until - this.time) / 0.4);
+      fillRR(ctx, W / 2 - 70, H - 42, 140, 34, 8, 'rgba(20, 13, 10, 0.92)');
+      text(ctx, this.toast.text, W / 2, H - 24, { size: 16, bold: true, align: 'center', baseline: 'middle', color: C.gold });
+      ctx.globalAlpha = 1;
+    }
   }
 
   showStart(): void {
@@ -118,6 +133,7 @@ export class Game {
   floorCleared(): void {
     if (!this.run) return;
     const reward = giveFloorReward(this.run.knight, this.rng);
+    sfx.play('stairs');
     this.screen = new RewardScreen(this, reward, this.run.floorNum);
   }
 

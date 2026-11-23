@@ -10,6 +10,8 @@ The repo was renamed from `knightfall` to `keepfall` on 2026-11-23.
 
 The first playable milestone is built, runs in a browser, and is merged to `main` and pushed (owner OK given in the project chat on 2026-11-23).
 
+Step 7 (a balance pass and sound effects) is built and checked in a browser, but it is not committed or pushed yet. It needs the owner's OK.
+
 Built and checked in headless Chromium:
 
 - Start screen, how to play screen
@@ -22,8 +24,9 @@ Built and checked in headless Chromium:
 - Boss: Mogrum the Ork. Can not be fled from
 - Win and lose screens
 - Shop between runs with saved gold and permanent upgrades
+- Sound effects made in code with the Web Audio API (`src/audio/sfx.ts`). M turns sound off or on, and the choice is saved
 
-Not done yet: sound effects, a deeper balance pass, touch controls.
+Not done yet: touch controls. The sound has only been checked for running without errors. Nobody has listened to it yet, so the owner should play it and say how it sounds.
 
 ## Decisions the owner made
 
@@ -48,14 +51,23 @@ Not done yet: sound effects, a deeper balance pass, touch controls.
 ## Open items
 
 - The merged branch `first-playable` is still on GitHub at the same commit as `main`. The owner OK'd deleting it, but the cloud session's git proxy refused the delete (HTTP 403). The owner can delete it on the repo's Branches page.
-- Next work: step 7, a balance pass and simple sound effects. Touch controls come later.
+- Step 7 is waiting for the owner's OK to commit and push.
+- After that: touch controls, and more balance tuning from real play.
 
 ## Balance notes
 
-- Simulated boss fights: a knight who skips every fight loses every time. A knight who clears the floors wins. A half clear nearly always loses.
-- Four full runs played by a test script that guards every heavy blow all won. It may be a little easy for a careful player. Look at this in the balance pass.
-- Shop prices rise with each purchase of the same upgrade.
-- Vendor prices rise with each purchase in the run.
+Numbers after the balance pass on 2026-11-23:
+
+- Enemy attack went up by 1 for every regular enemy. The Ork has 140 health and 10 attack. A level up heals 40% of max health (was 50%).
+- Simulated first runs with no shop upgrades (3000 runs each, real battle rules, no map):
+  - Skip every fight: wins 0%.
+  - Fight half the visible enemies, guard heavy blows: wins about 21%.
+  - Fight everything, guard heavy blows: wins about 71%.
+  - Fight everything, never guard: wins about 26%.
+  - Fight everything but buy nothing from the vendor: wins about 13%. Vendor spending matters.
+- With a few cheap shop upgrades (Vigor 2, Might 1) a careful full clear wins about 98%. The shop makes the game easy fast. If that feels too quick, raise shop prices or lower what each upgrade gives.
+- Four full runs played in the browser by a test script: 2 won, 2 lost at the Ork.
+- Shop prices rise with each purchase of the same upgrade. Vendor prices rise with each purchase in the run.
 
 ## Order of work
 
@@ -65,7 +77,7 @@ Not done yet: sound effects, a deeper balance pass, touch controls.
 4. Gear, XP, gold, potions and floor rewards. Done
 5. The boss floor, and the win and lose screens. Done
 6. The shop between runs, with saving. Done
-7. A balance pass and simple sound effects. Next
+7. A balance pass and simple sound effects. Done, waiting for the owner's OK to commit and push
 
 ## Project rules
 
