@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>KeepFall</title>
+    <style>
+      :root {
+        /* Height kept free under the game for touch controls later. */
+        --touch-h: 0px;
+      }
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: #120c0a;
+        overflow: hidden;
+      }
+      #stage {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+      }
+      #game {
+        display: block;
+        background: #1b1310;
+        outline: none;
+      }
+      #touch-controls {
+        height: var(--touch-h);
+        width: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="stage">
+      <canvas id="game" tabindex="0" aria-label="KeepFall game"></canvas>
+      <!-- Touch controls will go here. They will call Input.press and Input.release. -->
+      <div id="touch-controls"></div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
