@@ -37,7 +37,6 @@ export class BattleScreen implements Screen {
   private shownEnemyHp: number;
   private enemyGone = false;
   private knightGone = false;
-  private age = 0;
 
   constructor(
     private readonly game: Game,
@@ -66,8 +65,7 @@ export class BattleScreen implements Screen {
     this.eventT = 0;
     if (this.current) {
       this.log.push(this.current.text);
-      const blocked = this.current.anim === 'knightHit' && this.current.text.includes('guard holds');
-      const sound = blocked ? 'block' : ANIM_SOUND[this.current.anim];
+      const sound = this.current.blocked ? 'block' : ANIM_SOUND[this.current.anim];
       if (sound) sfx.play(sound);
     }
   }
@@ -78,7 +76,6 @@ export class BattleScreen implements Screen {
   }
 
   update(dt: number, pressed: Action[]): void {
-    this.age += dt;
     const k = this.game.run!.knight;
     const targetK = this.current ? this.current.knightHp : k.hp;
     const targetE = this.current ? this.current.enemyHp : this.battle.enemyHp;
@@ -125,6 +122,11 @@ export class BattleScreen implements Screen {
     const k = this.game.run!.knight;
     if (action === 'potion' && k.potions <= 0) {
       this.log.push('You have no potions left.');
+      sfx.play('deny');
+      return;
+    }
+    if (action === 'potion' && k.hp >= maxHp(k)) {
+      this.log.push('You are already at full health.');
       sfx.play('deny');
       return;
     }
@@ -193,7 +195,7 @@ export class BattleScreen implements Screen {
     let enemyAlpha = this.enemyGone ? 0 : 1;
     let enemyScale = 1;
     if (cur) {
-      if (cur.anim === 'enemyHit' && cur.text.startsWith('Your Thorn') === false) kx += swing * 70;
+      if (cur.anim === 'enemyHit' && cur.source !== 'thorn') kx += swing * 70;
       if (cur.anim === 'enemyHit') ex += Math.sin(this.eventT * 60) * 5 * (1 - p);
       if (cur.anim === 'knightHit') {
         ex -= swing * 70;
@@ -300,13 +302,13 @@ export class BattleScreen implements Screen {
     const rows = [
       { label: '1  Attack', right: `${attackPower(k)} dmg${this.battle.riposte ? ' x1.5' : ''}` },
       { label: '2  Guard', right: `block ${Math.round(guardShare(k) * 100)}%` },
-      { label: '3  Potion', right: `x ${k.potions}`, dim: k.potions <= 0 },
+      { label: '3  Potion', right: `x ${k.potions}`, dim: k.potions <= 0 || k.hp >= kMax },
       { label: '4  Flee', right: this.battle.canFlee() ? '' : 'no way out', dim: !this.battle.canFlee() },
     ];
     ctx.globalAlpha = active ? 1 : 0.45;
     drawMenu(ctx, rows, active ? this.menuIndex : -1, 525, 450, 245, 32, 16);
     ctx.globalAlpha = 1;
-    if (active && this.age % 1 < 2) {
+    if (active) {
       text(ctx, 'W and S to choose, Enter to pick', 484, 572, { size: 13, color: C.inkFaint, align: 'right' });
     }
   }

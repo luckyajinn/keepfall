@@ -14,7 +14,14 @@ export interface BattleEvent {
   knightHp: number;
   enemyHp: number;
   amount?: number;
+  /** True on a hit the knight took while guarding. */
+  blocked?: boolean;
+  /** Set when the damage came from a trinket and not from a blow. */
+  source?: 'thorn';
 }
+
+/** The optional fields an event can carry beyond its text, animation and amount. */
+type EventExtras = Pick<BattleEvent, 'blocked' | 'source'>;
 
 export interface BattleReward {
   xp: number;
@@ -63,8 +70,8 @@ export class Battle {
     return !this.enemy.boss;
   }
 
-  private ev(text: string, anim: Anim = 'none', amount?: number): BattleEvent {
-    return { text, anim, knightHp: this.knight.hp, enemyHp: this.enemyHp, amount };
+  private ev(text: string, anim: Anim = 'none', amount?: number, extras: EventExtras = {}): BattleEvent {
+    return { text, anim, knightHp: this.knight.hp, enemyHp: this.enemyHp, amount, ...extras };
   }
 
   /** Opening events. An ambusher gets a free first turn. */
@@ -90,7 +97,8 @@ export class Battle {
     const events: BattleEvent[] = [];
     if (this.outcome !== 'ongoing') return events;
     const k = this.knight;
-    const name = this.enemy.name;
+    // A potion with none left or at full health would be wasted. Nothing changes and no turn passes.
+    if (action === 'potion' && (k.potions <= 0 || k.hp >= maxHp(k))) return events;
     this.guarding = false;
 
     if (action === 'attack') {
@@ -107,16 +115,12 @@ export class Battle {
         this.win(events);
         return events;
       }
-      if (this.enemy.boss && !this.enraged && this.enemyHp <= this.enemy.maxHp / 2) {
-        this.enraged = true;
-        events.push(this.ev(`${name} roars with rage. His blows hit harder now.`, 'windup'));
-      }
+      this.checkEnrage(events);
     } else if (action === 'guard') {
       this.guarding = true;
       this.riposte = true;
       events.push(this.ev('You raise your shield.', 'guard'));
     } else if (action === 'potion') {
-      if (k.potions <= 0) return events;
       k.potions--;
       const amount = heal(k, potionHeal(k));
       events.push(this.ev(`You drink a potion and heal ${amount}.`, 'heal', amount));
@@ -164,7 +168,7 @@ export class Battle {
     const amount = Math.max(1, Math.round(dmg));
     k.hp = Math.max(0, k.hp - amount);
     const line = this.guarding ? `${lead}. Your guard holds and you take ${amount}.` : `${lead} for ${amount}.`;
-    events.push(this.ev(line, 'knightHit', amount));
+    events.push(this.ev(line, 'knightHit', amount, { blocked: this.guarding }));
     if (k.hp <= 0) {
       this.outcome = 'lost';
       events.push(this.ev('You fall to the cold stone floor.', 'knightDown'));
@@ -172,9 +176,19 @@ export class Battle {
     }
     if (has(k, 'thorn')) {
       this.enemyHp = Math.max(0, this.enemyHp - 2);
-      events.push(this.ev(`Your Thorn Ring pricks ${this.foe} for 2.`, 'enemyHit', 2));
+      events.push(this.ev(`Your Thorn Ring pricks ${this.foe} for 2.`, 'enemyHit', 2, { source: 'thorn' }));
       if (this.enemyHp <= 0) this.win(events);
+      else this.checkEnrage(events);
     }
+  }
+
+  /** The boss enrages once, the first time his health drops to half or below while he still stands. */
+  private checkEnrage(events: BattleEvent[]): void {
+    const e = this.enemy;
+    if (!e.boss || this.enraged || this.outcome !== 'ongoing' || this.enemyHp <= 0) return;
+    if (this.enemyHp > e.maxHp / 2) return;
+    this.enraged = true;
+    events.push(this.ev(`${e.name} roars with rage. His blows hit harder now.`, 'windup'));
   }
 
   private win(events: BattleEvent[]): void {
