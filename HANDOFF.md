@@ -51,7 +51,7 @@ Not done yet: touch controls. The sound has only been checked for running withou
 ## Open items
 
 - The merged branches `first-playable` and `balance-and-sound` are still on GitHub. The cloud session can not delete branches (the git proxy refuses it), so the owner deletes them on the repo's Branches page.
-- Next: the owner asked for a plan of the next features. Touch controls and more balance tuning from real play are known candidates.
+- Next: `PLAN.md` holds the plan for the next features and a list of known bugs. Nothing in it is approved yet. The owner picks what gets built and in what order.
 
 ## Balance notes
 
