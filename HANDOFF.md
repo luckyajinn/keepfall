@@ -12,7 +12,7 @@ The first playable milestone is built, runs in a browser, and is merged to `main
 
 Step 7 (a balance pass and sound effects) is built, checked in a browser, and merged to `main` and pushed (owner OK given on 2026-11-23). Every step in the order of work is now done.
 
-All nine bugs listed in `PLAN.md` were fixed on 2026-11-23 by five agents working in parallel, each reviewed and then tested together. The fixes are on the branch `bug-fixes`.
+All nine bugs listed in `PLAN.md` were fixed on 2026-11-23 by five agents working in parallel, each reviewed and then tested together. The fixes are merged to `main` and pushed (owner OK given on 2026-11-24).
 
 Built and checked in headless Chromium:
 
@@ -52,7 +52,7 @@ Not done yet: touch controls. The sound has only been checked for running withou
 
 ## Open items
 
-- The merged branches `first-playable` and `balance-and-sound` are still on GitHub. The cloud session can not delete branches (the git proxy refuses it), so the owner deletes them on the repo's Branches page.
+- The merged branch `bug-fixes` is still on GitHub. The cloud session can not delete branches (the git proxy refuses it), so the owner deletes it on the repo's Branches page.
 - Next: `PLAN.md` holds the plan for the next features and the list of bugs that were fixed. The bug fixes are done. Nothing else in it is approved yet. The owner picks what gets built and in what order.
 - Sound on touch devices has only been checked in a headless browser, not on a real phone.
 
