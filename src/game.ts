@@ -105,6 +105,10 @@ export class Game {
     this.screen = new StartScreen(this);
   }
 
+  giveUp(): void {
+    this.endRun(false);
+  }
+
   showHelp(): void {
     this.screen = new HelpScreen(this);
   }
