@@ -1,7 +1,9 @@
 // Helpers shared by the menu style screens.
 import type { Action } from '../input';
-import { C } from '../render/colors';
-import { Ctx, H, W, fillRR, poly } from '../render/draw';
+import { Ctx, hash2 } from '../render/draw';
+import { drawSprite, fromPx } from '../render/pixel';
+import { frameAt } from '../render/sprites/art';
+import { FLAG_AT, WINDOW_AT, backdropParts } from './titleArt';
 import { sfx } from '../audio/sfx';
 
 /** Moves a menu index with the up and down actions. Returns the picked row, or -1. */
@@ -20,58 +22,16 @@ export function menuInput(pressed: Action[], state: { index: number }, count: nu
   return -1;
 }
 
-export function nightSky(ctx: Ctx, t: number): void {
-  const g = ctx.createLinearGradient(0, 0, 0, H);
-  g.addColorStop(0, '#1a1110');
-  g.addColorStop(0.55, '#4a2a1c');
-  g.addColorStop(1, '#8a4a26');
-  ctx.fillStyle = g;
-  ctx.fillRect(0, 0, W, H);
-  // A low warm sun behind the keep.
-  const sun = ctx.createRadialGradient(560, 380, 10, 560, 380, 260);
-  sun.addColorStop(0, 'rgba(255, 200, 120, 0.85)');
-  sun.addColorStop(0.25, 'rgba(242, 150, 70, 0.45)');
-  sun.addColorStop(1, 'rgba(242, 150, 70, 0)');
-  ctx.fillStyle = sun;
-  ctx.fillRect(0, 0, W, H);
-  // The keep, as a dark outline.
-  const dark = '#150e0c';
-  ctx.fillStyle = dark;
-  ctx.fillRect(440, 250, 240, 350);
-  ctx.fillRect(410, 190, 70, 410);
-  ctx.fillRect(640, 220, 70, 380);
-  ctx.fillRect(520, 130, 80, 200);
-  for (let i = 0; i < 4; i++) {
-    ctx.fillRect(410 + i * 20, 178, 12, 14);
-    ctx.fillRect(640 + i * 20, 208, 12, 14);
-    ctx.fillRect(520 + i * 22.6, 118, 13, 14);
-  }
-  for (let i = 0; i < 8; i++) ctx.fillRect(482 + i * 20, 240, 12, 12);
-  poly(ctx, [556, 118, 560, 70, 564, 118], dark);
-  poly(ctx, [562, 74, 590, 82, 562, 92], C.red);
-  // Lit windows.
-  const flick = 0.75 + Math.sin(t * 5) * 0.12;
-  ctx.fillStyle = `rgba(255, 190, 100, ${flick})`;
-  for (const [wx, wy] of [
-    [436, 260],
-    [436, 340],
-    [668, 290],
-    [552, 180],
-    [500, 320],
-    [600, 320],
-  ]) {
-    fillRR(ctx, wx, wy, 12, 20, 6, ctx.fillStyle as string);
-  }
-  // The gate.
-  fillRR(ctx, 530, 500, 60, 100, 28, '#2a1a12');
-  // Hills.
-  ctx.fillStyle = '#100a08';
-  ctx.beginPath();
-  ctx.moveTo(0, 520);
-  ctx.quadraticCurveTo(200, 440, 430, 540);
-  ctx.quadraticCurveTo(620, 590, 800, 530);
-  ctx.lineTo(800, 600);
-  ctx.lineTo(0, 600);
-  ctx.closePath();
-  ctx.fill();
+/**
+ * The title backdrop: a dusk sky over the keep and the hills, drawn as one pixel picture that
+ * fills the screen. The keep's windows flicker and its flag waves. `dark` gives the deeper,
+ * later dusk the win screen uses behind its panel. See titleArt.ts.
+ */
+export function nightSky(ctx: Ctx, t: number, dark = false): void {
+  const art = backdropParts(dark);
+  drawSprite(ctx, art.sky, 0, 0);
+  // The windows flicker now and then, not on a beat.
+  const flicker = hash2(Math.floor(t * 5), 11) < 0.35 ? 1 : 0;
+  drawSprite(ctx, art.windows[flicker], fromPx(WINDOW_AT.x), fromPx(WINDOW_AT.y));
+  drawSprite(ctx, frameAt(art.flag, t, 0.22), fromPx(FLAG_AT.x), fromPx(FLAG_AT.y));
 }
