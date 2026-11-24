@@ -311,7 +311,7 @@ export class BattleScreen implements Screen {
     if (knightAlpha >= 1) this.drawShadow(ctx, kx + knightFeet, false);
     if (enemyAlpha > 0) {
       if (dissolve > 0) drawSprite(ctx, dissolved(enemyFrame(e.kind, t), dissolve), snap(ex), snap(ey), { center: true, flip: true });
-      else drawEnemy(ctx, e.kind, snap(ex), snap(ey), 'large', t, true, { alpha: enemyAlpha, tint: enemyTint });
+      else drawEnemy(ctx, e.kind, snap(ex), snap(ey), 'large', t, true, { alpha: enemyAlpha, tint: enemyTint, windup: this.battle.charging });
     }
     if (knightAlpha > 0) {
       drawKnight(ctx, snap(kx), snap(ky), 'large', knightDir, t, knightMoving, { alpha: knightAlpha, tint: knightTint });

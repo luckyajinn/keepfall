@@ -22,6 +22,8 @@ export interface SpriteFx {
   alpha?: number;
   /** Every opaque pixel drawn in this color. */
   tint?: string;
+  /** Shows the enemy's wind-up pose, if its art has one. Used while it readies a heavy blow. */
+  windup?: boolean;
 }
 
 /** What every enemy file exports (through `art()`). */
@@ -32,6 +34,8 @@ export interface EnemyArt {
   large: Sprite[];
   /** Seconds each frame shows. */
   frameTime: number;
+  /** Optional large frames for the pose shown while the enemy winds up a heavy blow. */
+  windup?: Sprite[];
 }
 
 /** One facing of the knight. */

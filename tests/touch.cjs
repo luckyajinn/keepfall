@@ -158,6 +158,8 @@ async function padFight(page, f, sp) {
 
   // Play with the buttons on an upright phone.
   const { browser, page, errors } = await open(33, PHONE_UP); // Seed 33 starts with a long clear row to walk along.
+  // This part walks in real time. Patrols are stopped whenever a map is up, so one can not start a fight mid check.
+  const stopPatrols = () => page.evaluate(() => { const m = window.keepfall.map; if (m) m.floor.enemies.forEach((e) => { e.patrol = null; }); });
   const f = await fingers(page);
   const sp = await spots(page);
   await spy(page);
@@ -170,6 +172,7 @@ async function padFight(page, f, sp) {
   await f.tap(sp.confirm.x, sp.confirm.y); await wait(page, 300);
   t.ok((await state(page)).screen === 'MapScreen', 'OK on the title starts a run');
   t.ok((await acts(page)).join() === 'confirm', 'OK sends confirm');
+  await stopPatrols();
 
   // Find the longest clear line from the start, then hold that way.
   let s = await state(page);

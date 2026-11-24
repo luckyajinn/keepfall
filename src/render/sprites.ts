@@ -47,7 +47,8 @@ export function drawKnight(ctx: Ctx, cx: number, cy: number, size: SpriteSize, d
  */
 export function drawEnemy(ctx: Ctx, kind: EnemyKind, cx: number, cy: number, size: SpriteSize, t: number, flip = false, fx: SpriteFx = {}): void {
   const a = ENEMY_ART[kind]();
-  const img = frameAt(a[size], t, a.frameTime);
+  const frames = size === 'large' && fx.windup && a.windup ? a.windup : a[size];
+  const img = frameAt(frames, t, a.frameTime);
   drawSprite(ctx, img, cx, cy, { center: true, flip, alpha: fx.alpha, tint: fx.tint });
 }
 
@@ -82,29 +83,3 @@ export function drawIcon(ctx: Ctx, name: IconName, cx: number, cy: number, size:
 
 // The old icon functions, kept as thin wrappers so screens still compile. `s` was the old width in
 // logical units: 32 and over picks the large icon. New code should call drawIcon.
-
-const old = (s: number): SpriteSize => (s >= 32 ? 'large' : 'small');
-
-export function iconCoin(ctx: Ctx, x: number, y: number, s: number): void {
-  drawIcon(ctx, 'coin', x, y, old(s));
-}
-
-export function iconPotion(ctx: Ctx, x: number, y: number, s: number): void {
-  drawIcon(ctx, 'potion', x, y, old(s));
-}
-
-export function iconSword(ctx: Ctx, x: number, y: number, s: number): void {
-  drawIcon(ctx, 'sword', x, y, old(s));
-}
-
-export function iconShield(ctx: Ctx, x: number, y: number, s: number): void {
-  drawIcon(ctx, 'shield', x, y, old(s));
-}
-
-export function iconArmor(ctx: Ctx, x: number, y: number, s: number): void {
-  drawIcon(ctx, 'armor', x, y, old(s));
-}
-
-export function iconTrinket(ctx: Ctx, x: number, y: number, s: number, color: string): void {
-  drawIcon(ctx, 'trinket', x, y, old(s), color);
-}
