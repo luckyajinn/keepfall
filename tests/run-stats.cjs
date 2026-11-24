@@ -71,11 +71,9 @@ async function walkToFight(page) {
   return false;
 }
 
-// Every string drawn by the next frame.
+// Every string drawn in a whole frame, read from the pixel font's dev hook (see src/render/font.ts).
 const drawnText = (page) => page.evaluate(() => new Promise((done) => {
-  const proto = CanvasRenderingContext2D.prototype; const orig = proto.fillText; const seen = [];
-  proto.fillText = function (s, ...rest) { seen.push(String(s)); return orig.call(this, s, ...rest); };
-  requestAnimationFrame(() => requestAnimationFrame(() => { proto.fillText = orig; done(seen); }));
+  requestAnimationFrame(() => requestAnimationFrame(() => done(window.keepfallText.map((x) => x.s))));
 }));
 
 (async () => {

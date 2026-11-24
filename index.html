@@ -15,7 +15,8 @@
       body {
         margin: 0;
         height: 100%;
-        background: #120c0a;
+        /* The deepest color in the game's color set (src/render/colors.ts). */
+        background: #140c0a;
         overflow: hidden;
         overscroll-behavior: none;
         -webkit-text-size-adjust: 100%;
@@ -39,10 +40,18 @@
         -webkit-touch-callout: none;
         -webkit-tap-highlight-color: transparent;
       }
+      /* The canvas holds the 400 by 300 pixel grid. It is scaled up with nearest neighbor so every
+         art pixel stays a crisp square. src/main.ts picks the size. Older browsers need the first lines. */
       #game {
         display: block;
-        background: #1b1310;
+        flex: none;
+        background: #22150f;
         outline: none;
+        image-rendering: -moz-crisp-edges;
+        image-rendering: -webkit-optimize-contrast;
+        image-rendering: crisp-edges;
+        image-rendering: pixelated;
+        -ms-interpolation-mode: nearest-neighbor;
       }
       #touch-controls {
         display: none;

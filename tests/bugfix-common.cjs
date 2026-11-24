@@ -124,27 +124,18 @@ async function leaveBattle(page) {
   await page.waitForFunction(() => window.keepfall.screen.constructor.name !== 'BattleScreen', null, { timeout: 3000 });
 }
 
-// Records every string drawn with fillText on any canvas, with the fill color at that moment.
-// The latest frames win. Use drawnTexts(page) to read and clear the record.
+// The game draws text with its own pixel font (src/render/font.ts), not with fillText. In dev mode
+// window.keepfallText lists every string drawn in the last frame as { s, color, x, y, w, h }:
+// the color it was drawn in and its box in canvas pixels. main.ts empties it at the start of each frame.
+// recordText only checks that the hook is there. drawnTexts waits nFrames frames, then reads the last one.
 async function recordText(page) {
-  await page.evaluate(() => {
-    if (window.__kfText) return;
-    window.__kfText = [];
-    const P = CanvasRenderingContext2D.prototype;
-    const orig = P.fillText;
-    P.fillText = function (str, ...rest) {
-      const list = window.__kfText;
-      list.push({ s: String(str), color: String(this.fillStyle) });
-      if (list.length > 4000) list.splice(0, list.length - 2000);
-      return orig.call(this, str, ...rest);
-    };
-  });
+  const ok = await page.evaluate(() => Array.isArray(window.keepfallText));
+  if (!ok) throw new Error('recordText: window.keepfallText is missing (is this a dev server?)');
 }
 
 async function drawnTexts(page, nFrames = 3) {
-  await page.evaluate(() => { window.__kfText.length = 0; });
   await frames(page, nFrames);
-  return page.evaluate(() => window.__kfText.slice());
+  return page.evaluate(() => window.keepfallText.map((x) => ({ ...x })));
 }
 
 // Starts a fresh list of the sounds played from now on. soundsSince(page) reads it.

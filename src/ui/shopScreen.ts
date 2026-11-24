@@ -3,7 +3,7 @@ import type { Action } from '../input';
 import type { Game, Screen } from '../game';
 import { C } from '../render/colors';
 import { Ctx, H, W, drawMenu, fillRR, panel, text } from '../render/draw';
-import { iconCoin } from '../render/sprites';
+import { drawIcon } from '../render/sprites';
 import { SHOP_ITEMS, buyFromShop, isMaxed, shopPrice } from '../meta/shop';
 import { sfx } from '../audio/sfx';
 import { menuInput } from './common';
@@ -51,7 +51,7 @@ export class ShopScreen implements Screen {
     panel(ctx, 70, 24, 660, 552);
     text(ctx, 'The Shop', 100, 74, { size: 32, bold: true, color: C.gold });
     text(ctx, 'What you buy here is yours in every run from now on.', 100, 100, { size: 15, italic: true, color: C.inkDim });
-    iconCoin(ctx, 610, 64, 20);
+    drawIcon(ctx, 'coin', 610, 64, 'small');
     text(ctx, `${save.gold}`, 626, 72, { size: 24, bold: true, color: C.gold });
 
     const rows = SHOP_ITEMS.map((item) => {

@@ -283,9 +283,10 @@ export class MapScreen implements Screen {
       const faceLeft = e.x < e.fromX || (e.moveT >= 1 && this.x < e.x);
       ctx.globalAlpha = e.dazed > 0 ? 0.45 : 1;
       if (e.stats.boss) {
-        drawEnemy(ctx, e.stats.kind, ex, ey - 14, 68, t, faceLeft);
+        // The boss's 32 pixel box stands on its tile and reaches up into the tile above.
+        drawEnemy(ctx, e.stats.kind, ex, ey - TILE / 2, 'small', t, faceLeft);
       } else {
-        drawEnemy(ctx, e.stats.kind, ex, ey - 2, 30, t + e.id, faceLeft);
+        drawEnemy(ctx, e.stats.kind, ex, ey, 'small', t + e.id, faceLeft);
       }
       ctx.globalAlpha = 1;
     }
@@ -293,7 +294,7 @@ export class MapScreen implements Screen {
     // The knight.
     const kx = this.px(this.fromX + (this.x - this.fromX) * this.moveT);
     const ky = this.py(this.fromY + (this.y - this.fromY) * this.moveT);
-    drawKnight(ctx, kx, ky - 3, 30, this.dir, t, this.moveT < 1);
+    drawKnight(ctx, kx, ky, 'small', this.dir, t, this.moveT < 1);
 
     // Soft darkness away from the knight.
     const g = ctx.createRadialGradient(kx, ky, 90, kx, ky, 460);

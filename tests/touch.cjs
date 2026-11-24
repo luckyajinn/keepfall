@@ -105,12 +105,16 @@ async function padFight(page, f, sp) {
 }
 
 (async () => {
-  // Desktop, no touch: nothing changes.
-  for (const vp of [{ width: 800, height: 600, w: 800, h: 600 }, { width: 1280, height: 720, w: 960, h: 720 }]) {
+  // Desktop, no touch: no buttons. The game's 400 by 300 pixel grid is shown at the largest whole
+  // number scale that fits (2 times in 800x600 and 1280x720, 3 times in 1920x1080), since that keeps
+  // within 80% of the best fit. Before the pixel art change 1280x720 filled the height at 960x720.
+  for (const vp of [{ width: 800, height: 600, w: 800, h: 600 }, { width: 1280, height: 720, w: 800, h: 600 }, { width: 1920, height: 1080, w: 1200, h: 900 }]) {
     const { browser, page, errors } = await open(3, { viewport: { width: vp.width, height: vp.height } });
     const L = await layout(page);
     t.ok(!L.shown, `desktop ${vp.width}x${vp.height}: controls hidden`);
-    t.ok(L.canvas.w === vp.w && L.canvas.h === vp.h && L.canvas.l === (vp.width - vp.w) / 2, `desktop ${vp.width}x${vp.height}: canvas ${vp.w}x${vp.h} as before`, JSON.stringify(L.canvas));
+    t.ok(L.canvas.w === vp.w && L.canvas.h === vp.h && L.canvas.l === (vp.width - vp.w) / 2, `desktop ${vp.width}x${vp.height}: canvas ${vp.w}x${vp.h}, a whole number scale`, JSON.stringify(L.canvas));
+    const grid = await page.evaluate(() => { const c = document.getElementById('game'); return { w: c.width, h: c.height, r: getComputedStyle(c).imageRendering }; });
+    t.ok(grid.w === 400 && grid.h === 300 && grid.r === 'pixelated', `desktop ${vp.width}x${vp.height}: a 400x300 canvas scaled up with pixelated`, JSON.stringify(grid));
     const H0 = await hints(page);
     t.ok(!H0.touch && H0.text.menuPick === 'W and S to choose. Enter to pick.', 'desktop: hints name keys', H0.text.menuPick);
     if (vp.width === 800) {

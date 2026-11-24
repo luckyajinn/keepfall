@@ -72,23 +72,19 @@ export class EndScreen implements Screen {
     if (s.won) {
       text(ctx, 'The keep is yours!', W / 2, 135, { size: 40, bold: true, align: 'center', color: C.gold });
       text(ctx, 'Mogrum the Ork is beaten and the hall is quiet.', W / 2, 168, { size: 16, italic: true, align: 'center', color: C.inkDim });
-      drawKnight(ctx, W / 2, 232, 84, 'down', t, false);
+      drawKnight(ctx, W / 2, 236, 'large', 'down', t, false);
     } else if (s.gaveUp) {
       text(ctx, 'You turned back', W / 2, 135, { size: 40, bold: true, align: 'center', color: C.ember });
       text(ctx, `You left the keep from floor ${s.floorNum}. Your gold is safe.`, W / 2, 168, { size: 16, italic: true, align: 'center', color: C.inkDim });
       // The knight walks away, seen from behind.
-      ctx.globalAlpha = 0.7;
-      drawKnight(ctx, W / 2, 232, 84, 'up', t, false);
-      ctx.globalAlpha = 1;
+      drawKnight(ctx, W / 2, 236, 'large', 'up', t, false, { alpha: 0.75 });
     } else {
       text(ctx, 'You have fallen', W / 2, 135, { size: 40, bold: true, align: 'center', color: C.ember });
       text(ctx, `The keep holds, for now. You reached floor ${s.floorNum}.`, W / 2, 168, { size: 16, italic: true, align: 'center', color: C.inkDim });
       if (s.foeKind) {
-        // The boss is drawn a little larger, and lower so its raised club stays clear of the line above.
+        // The boss's small sprite, which is about the size the other enemies have when large.
         const boss = s.foeKind === 'boss';
-        ctx.globalAlpha = 0.7;
-        drawEnemy(ctx, s.foeKind, W / 2, boss ? 234 : 228, boss ? 72 : 68, t);
-        ctx.globalAlpha = 1;
+        drawEnemy(ctx, s.foeKind, W / 2, boss ? 236 : 232, boss ? 'small' : 'large', t, false, { alpha: 0.75 });
         if (s.foeName) {
           text(ctx, `${foeTitle(s.foeKind, s.foeName)} got the better of you.`, W / 2, 290, { size: 15, align: 'center', color: C.inkDim });
         }

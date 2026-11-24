@@ -194,7 +194,8 @@ export class BattleScreen implements Screen {
     let ey = e.boss ? 262 : 300;
     let knightAlpha = this.knightGone ? 0 : 1;
     let enemyAlpha = this.enemyGone ? 0 : 1;
-    let enemyScale = 1;
+    // A wind up flashes the enemy, since sprites are never scaled.
+    let enemyTint: string | undefined;
     if (cur) {
       if (cur.anim === 'enemyHit' && cur.source !== 'thorn') kx += swing * 70;
       if (cur.anim === 'enemyHit') ex += Math.sin(this.eventT * 60) * 5 * (1 - p);
@@ -202,7 +203,7 @@ export class BattleScreen implements Screen {
         ex -= swing * 70;
         kx += Math.sin(this.eventT * 60) * 5 * (1 - p);
       }
-      if (cur.anim === 'windup') enemyScale = 1 + Math.sin(Math.min(1, this.eventT / 0.5) * Math.PI) * 0.12;
+      if (cur.anim === 'windup' && this.eventT < 0.5 && Math.floor(this.eventT * 10) % 2 === 0) enemyTint = C.emberBright;
       if (cur.anim === 'enemyDown') {
         enemyAlpha = 1 - Math.min(1, this.eventT / 0.6);
         ey += Math.min(1, this.eventT / 0.6) * 20;
@@ -218,17 +219,12 @@ export class BattleScreen implements Screen {
     if (this.knightGone && this.battle.outcome === 'lost') knightAlpha = 0.25;
 
     // Enemy
-    const enemySize = (e.boss ? 250 : 150) * enemyScale;
     if (enemyAlpha > 0) {
-      ctx.globalAlpha = enemyAlpha;
-      drawEnemy(ctx, e.kind, ex, ey, enemySize, t, true);
-      ctx.globalAlpha = 1;
+      drawEnemy(ctx, e.kind, ex, ey, 'large', t, true, { alpha: enemyAlpha, tint: enemyTint });
     }
     // Knight
     if (knightAlpha > 0) {
-      ctx.globalAlpha = knightAlpha;
-      drawKnight(ctx, kx, ky, 150, 'right', t, false);
-      ctx.globalAlpha = 1;
+      drawKnight(ctx, kx, ky, 'large', 'right', t, false, { alpha: knightAlpha });
     }
 
     // Effects for the current event.

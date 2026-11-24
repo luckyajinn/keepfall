@@ -3,7 +3,7 @@ import type { Action } from '../input';
 import type { Game, Screen } from '../game';
 import { C } from '../render/colors';
 import { Ctx, H, W, fillRR, panel, text } from '../render/draw';
-import { iconArmor, iconShield, iconSword, iconTrinket } from '../render/sprites';
+import { drawIcon } from '../render/sprites';
 import { GEAR_EFFECT, GEAR_LABEL, gearName } from '../items/gear';
 import type { FloorReward } from '../items/rewards';
 import { TRINKETS } from '../items/trinkets';
@@ -34,9 +34,7 @@ export class RewardScreen implements Screen {
     fillRR(ctx, 150, 165, 500, 100, 8, C.panelLight);
     const ix = 200;
     const iy = 215;
-    if (r.slot === 'sword') iconSword(ctx, ix, iy, 52);
-    else if (r.slot === 'shield') iconShield(ctx, ix, iy, 50);
-    else iconArmor(ctx, ix, iy, 50);
+    drawIcon(ctx, r.slot, ix, iy, 'large');
     text(ctx, `${GEAR_LABEL[r.slot]} upgraded to level ${r.newLevel}`, 250, 205, { size: 21, bold: true });
     text(ctx, `${gearName(r.slot, r.newLevel)}: ${GEAR_EFFECT[r.slot]}`, 250, 234, { size: 16, color: C.inkDim });
 
@@ -44,11 +42,11 @@ export class RewardScreen implements Screen {
     fillRR(ctx, 150, 280, 500, 100, 8, C.panelLight);
     if (r.trinket) {
       const tr = TRINKETS[r.trinket];
-      iconTrinket(ctx, ix, 330, 40, tr.color);
+      drawIcon(ctx, 'trinket', ix, 330, 'large', tr.color);
       text(ctx, `You found a trinket: ${tr.name}`, 250, 320, { size: 21, bold: true, color: C.gold });
       text(ctx, tr.text, 250, 349, { size: 16, color: C.inkDim });
     } else {
-      iconTrinket(ctx, ix, 330, 40, '#4a3a30');
+      drawIcon(ctx, 'trinket', ix, 330, 'large', '#4a3a30');
       text(ctx, 'No trinket this time', 250, 320, { size: 21, bold: true, color: C.inkDim });
       text(ctx, 'Each cleared floor has a 1 in 4 chance of one.', 250, 349, { size: 16, color: C.inkFaint });
     }

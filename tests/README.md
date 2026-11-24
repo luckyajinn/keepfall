@@ -28,6 +28,8 @@ for f in tests/*.cjs; do case $f in tests/lib.cjs|tests/run.cjs|tests/*-common.c
 
 The tests use the handle that the game exposes in dev mode only: `window.keepfall` is the game and `window.keepfallSfx` is the sound object.
 
+The game draws text with its own pixel font (`src/render/font.ts`), so wrapping the canvas `fillText` sees nothing. To read text, use `window.keepfallText` (dev mode only): the strings drawn in the last frame, each as `{ s, color, x, y, w, h }` with the color it was drawn in and its box in canvas pixels (the canvas is 400 by 300). `src/main.ts` empties it at the start of each frame, so read it between frames, for example after a `requestAnimationFrame`. `recordText` and `drawnTexts` in `tests/bugfix-common.cjs` read it for you.
+
 Do not edit source files while a browser test is running. The dev server reloads the page on every change and that breaks the test.
 
 ## Balance simulator

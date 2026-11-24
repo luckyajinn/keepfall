@@ -3,7 +3,7 @@ import type { Action } from '../input';
 import type { Game, Screen } from '../game';
 import { C } from '../render/colors';
 import { Ctx, H, W, drawMenu, fillRR, panel, text } from '../render/draw';
-import { iconCoin, iconTrinket } from '../render/sprites';
+import { drawIcon } from '../render/sprites';
 import { VENDOR_ITEMS, VENDOR_TRINKET_PRICE, buyFromVendor, buyVendorTrinket, vendorPrice } from '../items/vendor';
 import { TRINKETS, TrinketId } from '../items/trinkets';
 import { attackPower, guardShare, maxHp } from '../entities/knight';
@@ -89,7 +89,7 @@ export class VendorScreen implements Screen {
     panel(ctx, 70, 40, 660, 520);
     text(ctx, 'The Stair Vendor', 100, 92, { size: 32, bold: true, color: C.gold });
     text(ctx, 'What you buy here lasts until this run ends.', 100, 120, { size: 15, italic: true, color: C.inkDim });
-    iconCoin(ctx, 610, 82, 20);
+    drawIcon(ctx, 'coin', 610, 82, 'small');
     text(ctx, `${k.gold}`, 626, 90, { size: 24, bold: true, color: C.gold });
 
     const rows = VENDOR_ITEMS.map((item) => {
@@ -106,7 +106,7 @@ export class VendorScreen implements Screen {
     drawMenu(ctx, rows, this.state.index, 100, 150, 600, 40, 20);
     if (this.offer) {
       ctx.globalAlpha = trinketDim ? 0.5 : 1;
-      iconTrinket(ctx, 596, 150 + VENDOR_ITEMS.length * 40 + 19, 20, sold ? '#4a3a30' : TRINKETS[this.offer].color);
+      drawIcon(ctx, 'trinket', 596, 150 + VENDOR_ITEMS.length * 40 + 18, 'small', sold ? '#4a3a30' : TRINKETS[this.offer].color);
       ctx.globalAlpha = 1;
     }
 

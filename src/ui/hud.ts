@@ -1,7 +1,7 @@
 // The bar across the top of the map: floor, health, XP, gold, potions, gear and trinkets.
 import { C } from '../render/colors';
 import { Ctx, W, bar, text } from '../render/draw';
-import { iconArmor, iconCoin, iconPotion, iconShield, iconSword, iconTrinket } from '../render/sprites';
+import { drawIcon } from '../render/sprites';
 import { Knight, maxHp, xpToNext } from '../entities/knight';
 import { TRINKETS } from '../items/trinkets';
 import { FINAL_FLOOR } from '../map/tiles';
@@ -30,27 +30,27 @@ export function drawHud(ctx: Ctx, k: Knight, floorNum: number): void {
 
   // Right: gold and potions
   let x = 470;
-  iconCoin(ctx, x, 18, 16);
+  drawIcon(ctx, 'coin', x, 18, 'small');
   text(ctx, `${k.gold}`, x + 13, 23.5, { size: 16, bold: true, color: C.gold });
   x += 80;
-  iconPotion(ctx, x, 19, 18);
+  drawIcon(ctx, 'potion', x, 18, 'small');
   text(ctx, `x ${k.potions}`, x + 13, 23.5, { size: 16, bold: true });
 
   // Gear levels
   x = 610;
-  iconSword(ctx, x, 19, 18);
+  drawIcon(ctx, 'sword', x, 18, 'small');
   text(ctx, `${k.gear.sword}`, x + 12, 23.5, { size: 15, bold: true });
   x += 46;
-  iconShield(ctx, x, 18, 17);
+  drawIcon(ctx, 'shield', x, 18, 'small');
   text(ctx, `${k.gear.shield}`, x + 12, 23.5, { size: 15, bold: true });
   x += 46;
-  iconArmor(ctx, x, 18, 17);
+  drawIcon(ctx, 'armor', x, 18, 'small');
   text(ctx, `${k.gear.armor}`, x + 12, 23.5, { size: 15, bold: true });
 
   // Trinkets
   if (k.trinkets.length) {
     text(ctx, 'Trinkets', 610, 44, { size: 12, color: C.inkDim });
-    k.trinkets.forEach((id, i) => iconTrinket(ctx, 672 + i * 16, 40, 12, TRINKETS[id].color));
+    k.trinkets.forEach((id, i) => drawIcon(ctx, 'trinket', 672 + i * 16, 40, 'small', TRINKETS[id].color));
   } else {
     text(ctx, 'No trinkets yet', 610, 44, { size: 12, color: C.inkFaint });
   }
