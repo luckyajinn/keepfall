@@ -14,6 +14,8 @@ Step 7 (a balance pass and sound effects) is built, checked in a browser, and me
 
 All nine bugs listed in `PLAN.md` were fixed on 2026-11-23 by five agents working in parallel, each reviewed and then tested together. The fixes are merged to `main` and pushed (owner OK given on 2026-11-24).
 
+Plan items 2 to 6 were built on 2026-11-24 by parallel agents and combined on the branch `next-features`: a sound check screen with volume, run stats on the end screen, touch controls, a trinket for sale at the vendor, and a pause menu with a way to give up the run. They are tested together but not merged to `main` yet. That needs the owner's OK.
+
 Built and checked in headless Chromium:
 
 - Start screen, how to play screen
@@ -52,9 +54,18 @@ Not done yet: touch controls. The sound has only been checked for running withou
 
 ## Open items
 
-- The merged branch `bug-fixes` is still on GitHub. The cloud session can not delete branches (the git proxy refuses it), so the owner deletes it on the repo's Branches page.
-- Next: `PLAN.md` holds the plan for the next features and the list of bugs that were fixed. The bug fixes are done. Nothing else in it is approved yet. The owner picks what gets built and in what order.
-- Sound on touch devices has only been checked in a headless browser, not on a real phone.
+- The branch `next-features` waits for the owner's OK to merge into `main`.
+- Nobody has listened to the sound yet. The Sound entry on the title screen plays each one.
+- Touch controls and sound on touch have only been checked with emulation in a headless browser, not on a real phone or tablet.
+- No person has played the game yet. Everything so far was played by test scripts.
+- The cloud session can not delete branches (the git proxy refuses it), so the owner deletes merged branches on the repo's Branches page.
+- `PLAN.md` items 7 to 12 are ideas for later. None is approved.
+
+## How the code is tested
+
+- `tests/` holds browser tests and the balance simulator. `tests/README.md` says how to run them. They are in the repo so that a fresh session has them.
+- Every feature and bug fix has a test file. Run them all against a dev server before any merge.
+- A test that depends on the floor layout names the seed it needs and why.
 
 ## Balance notes
 
@@ -69,6 +80,7 @@ Numbers after the bug fixes on 2026-11-23:
   - Fight everything but buy nothing from the vendor: wins about 16%. Vendor spending matters.
 - With a few cheap shop upgrades (Vigor 2, Might 1) a careful full clear wins about 99%. The shop makes the game easy fast. If that feels too quick, raise shop prices or lower what each upgrade gives.
 - Floor 3 Tallow Wisps and Rafter Lurkers have the same attack as on floor 2 and only gain health. That was the price of keeping every guard clearly below the boss.
+- The vendor trinket costs 25 gold. A careful full clear that always buys the offered trinket wins about 68%, against 75% without. Buying only the fighting trinkets (Ember Charm, Oak Token, Thorn Ring, Mender's Leaf) is about even, and the best single one reaches about 85%. The simulator never flees and has no map, so it undervalues the Swift Buckle, the Bell of Warning and the Lucky Coin.
 - Shop prices rise with each purchase of the same upgrade. Vendor prices rise with each purchase in the run.
 
 ## Order of work

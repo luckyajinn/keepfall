@@ -153,7 +153,7 @@ async function padFight(page, f, sp) {
   }
 
   // Play with the buttons on an upright phone.
-  const { browser, page, errors } = await open(7, PHONE_UP);
+  const { browser, page, errors } = await open(33, PHONE_UP); // Seed 33 starts with a long clear row to walk along.
   const f = await fingers(page);
   const sp = await spots(page);
   await spy(page);
@@ -246,6 +246,13 @@ async function padFight(page, f, sp) {
   t.ok(got2.join() === 'cancel,mute,mute' && muted2 === !muted, 'Back sends cancel and Sound sends mute', got2.join());
   const audio = await page.evaluate(() => window.keepfallSfx.ctx ? window.keepfallSfx.ctx.state : 'none');
   t.ok(audio !== 'none', 'sound was unlocked by the taps', audio);
+
+  // Back on the map opens the pause menu. Back again resumes the run.
+  const paused = await page.evaluate(() => window.keepfall.screen.constructor.name);
+  await f.tap(sp.cancel.x, sp.cancel.y); await wait(page, 100);
+  const resumed = await page.evaluate(() => window.keepfall.screen === window.keepfall.map);
+  t.ok(paused === 'PauseScreen' && resumed, 'Back on the map opens the pause menu and Back again resumes', paused);
+  await acts(page);
 
   // Walk to the nearest enemy with the pad, then fight with the pad and OK only.
   const keyDir = { w: 'up', s: 'down', a: 'left', d: 'right' };

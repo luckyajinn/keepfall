@@ -4,6 +4,7 @@ import type { Game, Screen } from '../game';
 import { C } from '../render/colors';
 import { Ctx, H, W, bar, drawMenu, fillRR, panel, poly, text } from '../render/draw';
 import { SFX_NAMES, SfxName, sfx } from '../audio/sfx';
+import { hint } from './hints';
 import { menuInput } from './common';
 
 /** A plain name for each sound, and when the game plays it. */
@@ -87,7 +88,7 @@ export class SoundScreen implements Screen {
     text(ctx, 'Volume', 100, 141, { size: 19, bold: true });
     bar(ctx, 200, 128, 400, 18, vol, C.gold);
     text(ctx, `${Math.round(vol * 10)} / 10`, 700, 141, { size: 19, bold: true, color: C.gold, align: 'right' });
-    if (sfx.muted) text(ctx, 'Sound is off. Press M to turn it back on.', 100, 168, { size: 15, bold: true, color: C.ember });
+    if (sfx.muted) text(ctx, hint('soundMuted'), 100, 168, { size: 15, bold: true, color: C.ember });
 
     // The rows on screen now, drawn as one menu. The raw sound id sits on the right.
     const { index, top } = this.state;
@@ -119,7 +120,7 @@ export class SoundScreen implements Screen {
       baseline: 'middle',
     });
     // Kept above y 558, where the game shows its Sound off and Sound on message.
-    text(ctx, 'W and S to choose. Enter to play. A and D for volume. Esc to go back.', 700, 550, {
+    text(ctx, hint('soundMenu'), 700, 550, {
       size: 13,
       color: C.inkFaint,
       align: 'right',

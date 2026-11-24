@@ -26,6 +26,8 @@ import { C } from './render/colors';
 import { H, W, fillRR, text } from './render/draw';
 
 export interface Screen {
+  /** True for screens that stop the run clock while they are open, such as the pause menu. */
+  readonly pausesRun?: boolean;
   update(dt: number, pressed: Action[]): void;
   render(ctx: Ctx): void;
 }
@@ -56,6 +58,8 @@ export interface RunState {
 export class Game {
   readonly input: Input;
   readonly rng: Rng;
+  /** The seed for the first run of this visit. Later runs draw their own. */
+  private firstRunSeed: number | null;
   save: SaveData;
   screen: Screen;
   run: RunState | null = null;
@@ -68,6 +72,7 @@ export class Game {
   constructor(input: Input, seed: number) {
     this.input = input;
     this.rng = new Rng(seed);
+    this.firstRunSeed = seed >>> 0;
     this.save = loadSave();
     this.screen = new StartScreen(this);
   }
@@ -76,7 +81,8 @@ export class Game {
     this.time += dt;
     // A run is active from startRun to endRun: the map, battles, the reward screen and the vendor.
     // The run is null on the title, help, end and shop screens, so they add no time.
-    if (this.run) this.run.stats.seconds += dt;
+    // Time in the pause menu does not count either.
+    if (this.run && !this.screen.pausesRun) this.run.stats.seconds += dt;
     const pressed = this.input.take().filter((action) => {
       if (action !== 'mute') return true;
       this.toast = { text: sfx.toggleMute() ? 'Sound off' : 'Sound on', until: this.time + 1.6 };
@@ -106,7 +112,7 @@ export class Game {
   }
 
   giveUp(): void {
-    this.endRun(false);
+    this.endRun(false, undefined, true);
   }
 
   showHelp(): void {
@@ -123,7 +129,10 @@ export class Game {
 
   startRun(): void {
     const knight = newKnight(this.save);
-    const seed = this.rng.int(0, 0xffffffff);
+    // The first run of a visit uses the seed the game started with, so the run seed shown on
+    // the end screen can be put in the address as ?seed= to get the same floors again.
+    const seed = this.firstRunSeed ?? this.rng.int(0, 0xffffffff);
+    this.firstRunSeed = null;
     this.run = {
       knight,
       floorNum: 1,

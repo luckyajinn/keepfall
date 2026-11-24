@@ -6,11 +6,13 @@ import { C } from '../render/colors';
 import { Ctx, H, W, drawMenu, panel, text } from '../render/draw';
 import { sfx } from '../audio/sfx';
 import { menuInput } from './common';
+import { hint } from './hints';
 import { HelpScreen } from './helpScreen';
 
 const GIVE_UP = 3;
 
 export class PauseScreen implements Screen {
+  readonly pausesRun = true;
   private state = { index: 0 };
   /** True after the first pick of "Give up this run". A second pick gives up. */
   private confirming = false;
@@ -70,6 +72,6 @@ export class PauseScreen implements Screen {
       { label: this.confirming ? 'Press again to give up' : 'Give up this run' },
     ];
     drawMenu(ctx, rows, this.state.index, x + 16, y + 70, 328, 44, 19);
-    text(ctx, 'W and S to choose. Enter to pick. Esc to resume.', W / 2, y + 268, { size: 13, align: 'center', color: C.inkDim });
+    text(ctx, hint('pauseMenu'), W / 2, y + 268, { size: 13, align: 'center', color: C.inkDim });
   }
 }

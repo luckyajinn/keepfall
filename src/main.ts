@@ -9,7 +9,8 @@ const canvas = document.getElementById('game') as HTMLCanvasElement;
 const stage = document.getElementById('stage')!;
 const ctx = canvas.getContext('2d')!;
 
-// Add ?seed=123 to the address to get the same floor layouts each time.
+// Add ?seed=123 to the address to get the same floor layouts each time, for the first run of a visit.
+// The end screen shows each run's seed, which can be used here.
 // Fights can still go differently, since they depend on what the player does.
 const seedParam = new URLSearchParams(location.search).get('seed');
 const seed = seedParam !== null && seedParam !== '' && Number.isFinite(Number(seedParam)) ? Number(seedParam) : Date.now();

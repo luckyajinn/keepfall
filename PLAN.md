@@ -2,7 +2,7 @@
 
 Written 2026-11-23. A planning pass read all of the code, and its claims were then checked against the files. Three of the bugs below were also reproduced in a browser.
 
-Item 1 (the bug fixes) is done, at the owner's request. Nothing else in this plan is approved yet. The owner picks what gets built and in what order. See "Questions for the owner" at the end.
+Items 1 to 6 are done, at the owner's request. Items 7 to 12 are not approved yet. The owner picks what gets built next and in what order. See "Questions for the owner" at the end.
 
 Effort sizes: small is under about 150 lines, medium is 150 to 400, large is over 400.
 
@@ -26,46 +26,33 @@ All nine bugs from the planning pass were fixed on 2026-11-23. Each fix has its 
 
 See "Bugs found and fixed" above.
 
-### 2. Sound check screen and volume (small)
+### 2. Sound check screen and volume (small). Done
 
-A "Sound" entry on the title screen that lists all 20 sounds, plays one with Enter and sets the volume with A and D. Nobody has listened to the sound yet, and this lets the owner judge all of it in about a minute.
+The title menu has a Sound entry (`src/ui/soundScreen.ts`). It lists all 20 sounds with plain names and when each plays, plays one with Enter, and sets the volume in ten steps with A and D. The volume is saved. Nobody has listened to the sound yet, so this screen is where the owner should start.
 
-- `src/audio/sfx.ts`: export `SFX_NAMES`, add a saved `volume` (0 to 1) and `setVolume(v)`.
-- New `SoundScreen` in `src/ui/screens.ts` with a scrolling list. Add `showSound()` to `Game`. The title menu grows from 3 rows to 4, so its panel and the text under it move down.
-- Check: press Enter on each row and confirm `keepfallSfx.played` ends with that name. A headless browser can not judge how it sounds.
+### 3. Run timer and run stats on the end screen (small). Done
 
-### 3. Run timer and run stats on the end screen (small)
+The win and lose screens show time, potions used, damage taken and the run seed. The first run of a visit uses the `?seed=` from the address, so a seed shown on the end screen can be put in the address to see the same floors again. Time in the pause menu does not count.
 
-Time, potions used, damage taken and the run's seed on the win and lose screens. The target is about 10 minutes per run and nothing measures that today.
+### 4. Touch controls (medium). Done, not yet tried on a real device
 
-- `RunState` in `src/game.ts`: add `seconds`, `potionsUsed`, `damageTaken` and `seed`. Add `dt` to `seconds` in `Game.update` while a run is active.
-- `RunSummary` and `EndScreen.render` in `src/ui/screens.ts`: show the new rows. The screen has room for 5 rows today (a sixth would land on the "Press Enter" line), so the layout needs smaller steps or two columns.
-- The run seed already exists (`RunState.seed` in `src/game.ts`), so showing it is cheap.
+`src/ui/touch.ts` adds a direction pad and OK, Back and Sound buttons. They appear on the first touch, or at load when the main pointer is a finger. Upright devices get a bar under the game and sideways devices get the controls at the sides. Hints switch to touch wording (`src/ui/hints.ts`).
 
-### 4. Touch controls (medium)
+Open points from building it:
 
-A direction pad plus OK, Back and Sound buttons under the game on phones and tablets. `index.html` already has `#touch-controls` and the `--touch-h` variable, and `Input.press` and `Input.release` were written for this.
+- Only checked with touch emulation in a headless browser. Real phones may differ, most of all iOS Safari (pointer capture, bounce, safe areas, sound on the first tap).
+- On an upright phone the game is small (about half size), so the smallest hint text is hard to read. Sideways is the better way to hold it.
+- Once touch controls are shown, hints keep the touch wording even if a keyboard is used later.
 
-- New `src/ui/touch.ts` that builds buttons with a `data-action`, calls `input.press` on `pointerdown` and `input.release` on `pointerup`, `pointercancel` and `lostpointercapture`. Direction buttons must stay held, because the map moves by `input.heldDir()`.
-- Show the controls on the first touch, set `--touch-h` and call `resize()` from `src/main.ts`. Sound already unlocks on a tap through the listeners in `src/main.ts`. Do not add a `pointerdown` only unlock: on touch, a tap counts for sound only when the finger lifts.
-- Hint text that names keys (map, battle, vendor, shop, title) needs a touch wording.
-- Check: Playwright with `hasTouch` and `isMobile`, tap OK on the title and hold the right button on the map.
+### 5. A trinket for sale at the vendor (small). Done
 
-### 5. A trinket for sale at the vendor (small)
-
-One random trinket offered at each vendor visit. Trinkets only roll twice a run at 25%, so about 56% of runs never see one.
-
-- `RunState`: add `vendorTrinket`. Roll it in `Game.showVendor`. Move the trinket handout in `src/items/rewards.ts` into a shared `giveTrinket(k, id)`.
-- `VendorScreen`: one more row at a fixed price (about 35 gold). Six rows do not fit at the current row height, so shrink the rows.
-- Needs the owner's OK, since the floor reward rule (25% chance) was confirmed as it is.
+Each vendor visit offers one trinket the knight does not own, for 25 gold (`VENDOR_TRINKET_PRICE` in `src/items/vendor.ts`). The 25% floor reward roll is unchanged. The plan guessed 35 gold, but the simulator showed that at 35 a trinket is almost always worse than spending the same gold on whetstones. At 25 it is a real choice: a good one lifts a careful full clear from 75% to as much as 85%, and buying blindly drops it to about 68%.
 
 ## After that
 
-### 6. Pause menu with "Give up this run" (small)
+### 6. Pause menu with "Give up this run" (small). Done
 
-Escape on the map opens Resume, Sound, How to play and Give up. Today the only ways out of a run are dying or closing the tab, and closing the tab loses that run's gold.
-
-- New `PauseScreen` in `src/ui/screens.ts` that draws the map under a dark layer and does not pass time on to it. `MapScreen.update` opens it on `cancel`. Add a public `giveUp()` to `Game` that ends the run as a loss.
+Escape on the map (or the touch Back button) opens Resume, Sound, How to play and Give up this run (`src/ui/pauseScreen.ts`). The map is drawn dimmed underneath and nothing moves. Giving up needs a second press, keeps the gold and counts as a run, and the end screen says "You turned back".
 
 ### 7. Chests and a healing fountain on floors 1 and 2 (medium)
 

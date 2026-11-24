@@ -69,7 +69,7 @@ async function pause(page) {
 (async () => {
   // 1. Opening, freezing and resuming.
   {
-    const { browser, page } = await startRun(7);
+    const { browser, page } = await startRun(33); // Seed 33 has patrolling enemies on floor 1, which this part needs.
     await page.evaluate(() => { window.__map = window.keepfall.map; });
     t.ok((await pause(page)) === 'PauseScreen', 'Escape on the map opens the pause');
     t.ok(await page.evaluate(() => window.keepfall.map === window.__map && window.keepfall.screen.map === window.__map), 'the pause holds the run map');

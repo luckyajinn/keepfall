@@ -7,6 +7,8 @@ import { nightSky } from './common';
 import { hint } from './hints';
 
 export class HelpScreen implements Screen {
+  /** Help can be opened from the pause menu. The run clock stays stopped while it is read. */
+  readonly pausesRun = true;
   /** `back` runs when the player leaves. Without it the title screen comes back. */
   constructor(
     private readonly game: Game,
@@ -31,7 +33,7 @@ export class HelpScreen implements Screen {
       'Clearing a floor upgrades your lowest level item, with a 1 in 4 chance of a trinket. A vendor then sells boosts that last for this run only.',
       'On floor 3 you must beat the Ork. When a run ends you keep your gold and can spend it in the shop on upgrades that last forever.',
       hint('helpSound'),
-      'Press Escape on the map to pause. From there you can also give up the run and keep your gold.',
+      hint('helpPause'),
     ];
     let y = 136;
     for (const line of lines) {
