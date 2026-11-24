@@ -3,8 +3,10 @@ import { Game } from './game';
 import { Input } from './input';
 import { H, W } from './render/draw';
 import { sfx } from './audio/sfx';
+import { TouchControls } from './ui/touch';
 
 const canvas = document.getElementById('game') as HTMLCanvasElement;
+const stage = document.getElementById('stage')!;
 const ctx = canvas.getContext('2d')!;
 
 // Add ?seed=123 to the address to get the same floor layouts each time.
@@ -34,10 +36,13 @@ const game = new Game(input, seed);
 let scale = 1;
 
 function resize(): void {
-  const touchH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--touch-h')) || 0;
-  const fit = Math.min(window.innerWidth / W, (window.innerHeight - touchH) / H);
+  // The stage is the screen minus the phone's safe areas. Keep room in it for the touch buttons when they are shown.
+  const area = stage.getBoundingClientRect();
+  const room = touch.room(area.width, area.height);
+  const fit = Math.min((area.width - 2 * room.side) / W, (area.height - room.bottom) / H);
   const cssW = Math.max(160, Math.floor(W * fit));
   const cssH = Math.floor((cssW * H) / W);
+  touch.place(area.width, area.height, cssW, cssH);
   const dpr = window.devicePixelRatio || 1;
   canvas.style.width = `${cssW}px`;
   canvas.style.height = `${cssH}px`;
@@ -45,6 +50,9 @@ function resize(): void {
   canvas.height = Math.round(cssH * dpr);
   scale = canvas.width / W;
 }
+
+// Shows itself on the first touch, or right away when the main pointer is a finger.
+const touch = new TouchControls(document.getElementById('touch-controls')!, input, resize);
 
 window.addEventListener('resize', resize);
 resize();
