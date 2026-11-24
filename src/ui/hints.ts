@@ -1,0 +1,36 @@
+// Short on-screen hints that name the controls.
+// Each hint has wording for keys, and can have different wording for touch buttons.
+
+export type HintId =
+  | 'menuPick'
+  | 'menuBuy'
+  | 'battleMenu'
+  | 'battleNext'
+  | 'back'
+  | 'toVendor'
+  | 'toShop'
+  | 'mapMove'
+  | 'helpMove'
+  | 'helpSound';
+
+/** Set `touch` to true while the player is using the touch buttons. */
+export const controls = { touch: false };
+
+const HINTS: Record<HintId, { keys: string; touch?: string }> = {
+  menuPick: { keys: 'W and S to choose. Enter to pick.' },
+  menuBuy: { keys: 'W and S to choose. Enter to buy.' },
+  battleMenu: { keys: 'W and S to choose, Enter to pick' },
+  battleNext: { keys: 'Press Enter to go on' },
+  back: { keys: 'Press Enter to go back' },
+  toVendor: { keys: 'Press Enter to visit the vendor' },
+  toShop: { keys: 'Press Enter to visit the shop' },
+  mapMove: { keys: 'Move with W A S D. Walk into an enemy to fight it, or go around. Find the stairs.' },
+  helpMove: { keys: 'Move the knight with W, A, S and D. Find the stairs to climb to the next floor.' },
+  helpSound: { keys: 'Press M at any time to turn the sound off or on.' },
+};
+
+/** The hint text for the controls in use. Falls back to the key wording. */
+export function hint(id: HintId): string {
+  const h = HINTS[id];
+  return controls.touch && h.touch ? h.touch : h.keys;
+}
