@@ -10,7 +10,7 @@ import { BattleScreen } from './battle/battleScreen';
 import { generateFloor } from './map/floor';
 import { MapScreen } from './map/mapScreen';
 import { FINAL_FLOOR } from './map/tiles';
-import { giveFloorReward } from './items/rewards';
+import { giveFloorReward, rollTrinket } from './items/rewards';
 import type { TrinketId } from './items/trinkets';
 import { VendorCounts, newVendorCounts } from './items/vendor';
 import { SaveData, loadSave, writeSave } from './meta/save';
@@ -187,6 +187,8 @@ export class Game {
   }
 
   showVendor(): void {
+    // Each visit offers one trinket the knight does not own yet.
+    if (this.run) this.run.vendorTrinket = rollTrinket(this.run.knight, this.rng);
     this.screen = new VendorScreen(this);
   }
 
