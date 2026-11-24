@@ -54,14 +54,14 @@ Not done yet: touch controls. The sound has only been checked for running withou
 
 ## The retro art change (2026-11-24)
 
-The owner asked to change the look from smooth vector shapes to 16-bit retro pixel art. It was done in two stages by parallel agents and combined on the branch `retro-art`. It waits for the owner to look at it and OK the merge into `main`.
+The owner asked to change the look from smooth vector shapes to 16-bit retro pixel art. It was done in two stages by parallel agents, combined on the branch `retro-art`, and merged into `main` by the owner on 2026-11-24 (pull request 2).
 
 - The art rules are at the top of `src/render/pixel.ts`. Every drawing follows them: a 400 by 300 pixel grid, the 32 colors in `src/render/colors.ts`, no smoothing, 1 pixel outlines, three tones per material, one pixel font (`src/render/font.ts`).
 - Screen code still lays things out in 800 by 600 logical units. One art pixel is 2 logical units.
 - Sprites live in `src/render/sprites/`, one file per character plus `icons.ts`. `knight.ts` is the reference for style. Map tiles are in `src/render/tiles.ts`, the battle backdrop and effects in `src/battle/battleArt.ts`, the title scene in `src/ui/titleArt.ts`.
 - Game rules did not change. The balance simulator prints the same lines as before, and seeded test runs end the same way.
 - The Thorn Ring's gem is now red, so it no longer looks like the Mender's Leaf.
-- The smooth version is still in git history on `main` before the merge.
+- The smooth version is still in git history, at the commit before pull request 2.
 - Small helpers that agents wrote in their own files and that could move into shared code later: `inset`, `splitLines` and `purse` in `src/ui/hud.ts`; `dim` in `src/render/tiles.ts`; `footOffset`, `dissolved` and `wrapLines` in `src/battle/battleArt.ts`; `dot`, `divider` and `bullet` in `src/ui/titleArt.ts`; `paintFace` in `src/ui/touch.ts`.
 
 ## Open items
@@ -70,7 +70,7 @@ The owner asked to change the look from smooth vector shapes to 16-bit retro pix
 - Touch controls and sound on touch have only been checked with emulation in a headless browser, not on a real phone or tablet.
 - The pixel art has only been judged from screenshots by the session. The owner has to say whether it looks right. Far rooms on the map are fairly dark; brighten the light steps in `src/map/mapScreen.ts` if the owner finds them too dark.
 - No person has played the game yet. Everything so far was played by test scripts.
-- The cloud session can not delete branches (the git proxy refuses it), so the owner deletes merged branches on the repo's Branches page.
+- The cloud session can not delete branches (the git proxy refuses it), so the owner deletes merged branches on the repo's Branches page. `retro-art` is merged and can be deleted.
 - `PLAN.md` items 7 to 12 are ideas for later. None is approved.
 
 ## How the code is tested
