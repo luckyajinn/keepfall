@@ -11,9 +11,15 @@ import { generateFloor } from './map/floor';
 import { MapScreen } from './map/mapScreen';
 import { FINAL_FLOOR } from './map/tiles';
 import { giveFloorReward } from './items/rewards';
+import type { TrinketId } from './items/trinkets';
 import { VendorCounts, newVendorCounts } from './items/vendor';
 import { SaveData, loadSave, writeSave } from './meta/save';
-import { EndScreen, HelpScreen, RewardScreen, ShopScreen, StartScreen, VendorScreen } from './ui/screens';
+import { EndScreen } from './ui/endScreen';
+import { HelpScreen } from './ui/helpScreen';
+import { RewardScreen } from './ui/rewardScreen';
+import { ShopScreen } from './ui/shopScreen';
+import { StartScreen } from './ui/startScreen';
+import { VendorScreen } from './ui/vendorScreen';
 import { sfx } from './audio/sfx';
 import { C } from './render/colors';
 import { H, W, fillRR, text } from './render/draw';
@@ -21,6 +27,14 @@ import { H, W, fillRR, text } from './render/draw';
 export interface Screen {
   update(dt: number, pressed: Action[]): void;
   render(ctx: Ctx): void;
+}
+
+/** Numbers gathered during a run for the end screen. */
+export interface RunStats {
+  /** Seconds played, counted while a run is active. */
+  seconds: number;
+  potionsUsed: number;
+  damageTaken: number;
 }
 
 export interface RunState {
@@ -33,6 +47,9 @@ export interface RunState {
   /** Gold spent at the vendor, so the end screen can show gold earned. */
   spent: number;
   vendorCounts: VendorCounts;
+  /** The trinket the vendor has for sale at this visit, if any. */
+  vendorTrinket: TrinketId | null;
+  stats: RunStats;
 }
 
 export class Game {
@@ -95,7 +112,17 @@ export class Game {
   startRun(): void {
     const knight = newKnight(this.save);
     const seed = this.rng.int(0, 0xffffffff);
-    this.run = { knight, floorNum: 1, seed, kills: 0, startGold: knight.gold, spent: 0, vendorCounts: newVendorCounts() };
+    this.run = {
+      knight,
+      floorNum: 1,
+      seed,
+      kills: 0,
+      startGold: knight.gold,
+      spent: 0,
+      vendorCounts: newVendorCounts(),
+      vendorTrinket: null,
+      stats: { seconds: 0, potionsUsed: 0, damageTaken: 0 },
+    };
     this.enterFloor(1);
   }
 

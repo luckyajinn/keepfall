@@ -54,7 +54,7 @@ src/
   battle/          turn rules and the battle screen
   items/           gear, trinkets, floor rewards, the vendor
   meta/            the shop and saved progress
-  ui/              HUD and the menu screens
+  ui/              HUD, one file per menu screen, and the control hints
   render/          canvas helpers, colors and sprites
   audio/           sound effects made in code
 ```
@@ -66,5 +66,9 @@ The first playable version is in: start screen, 3 floors, map enemies and ambush
 Sound effects and a first balance pass are in as well.
 
 Still to do: touch controls, and more balance tuning once real players have tried it.
+
+## Tests
+
+The `tests/` folder holds scripts that play the game in a headless browser and a simulator for balance numbers. See `tests/README.md`.
 
 See `CREDITS.md` for where the art and code come from.

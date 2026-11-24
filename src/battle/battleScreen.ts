@@ -8,6 +8,7 @@ import type { MapEnemy } from '../entities/enemies';
 import { attackPower, guardShare, maxHp } from '../entities/knight';
 import { Anim, Battle, BattleAction, BattleEvent } from './battle';
 import { SfxName, sfx } from '../audio/sfx';
+import { hint } from '../ui/hints';
 
 const EVENT_TIME = 1.05;
 const MIN_EVENT_TIME = 0.18;
@@ -293,7 +294,7 @@ export class BattleScreen implements Screen {
     });
     const over = this.battle.outcome !== 'ongoing';
     if (cur && over && this.queue.length === 0) {
-      if (Math.sin(t * 5) > -0.3) text(ctx, 'Press Enter to go on', 484, 572, { size: 13, color: C.gold, align: 'right' });
+      if (Math.sin(t * 5) > -0.3) text(ctx, hint('battleNext'), 484, 572, { size: 13, color: C.gold, align: 'right' });
     }
 
     // Menu
@@ -309,7 +310,7 @@ export class BattleScreen implements Screen {
     drawMenu(ctx, rows, active ? this.menuIndex : -1, 525, 450, 245, 32, 16);
     ctx.globalAlpha = 1;
     if (active) {
-      text(ctx, 'W and S to choose, Enter to pick', 484, 572, { size: 13, color: C.inkFaint, align: 'right' });
+      text(ctx, hint('battleMenu'), 484, 572, { size: 13, color: C.inkFaint, align: 'right' });
     }
   }
 }

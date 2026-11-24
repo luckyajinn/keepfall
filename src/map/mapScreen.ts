@@ -10,6 +10,7 @@ import type { MapEnemy } from '../entities/enemies';
 import { Floor, tileAt } from './floor';
 import { COLS, FINAL_FLOOR, ROWS, TILE, Tile } from './tiles';
 import { sfx } from '../audio/sfx';
+import { hint } from '../ui/hints';
 
 const KNIGHT_STEP = 0.13;
 const ENEMY_STEP = 0.32;
@@ -302,7 +303,7 @@ export class MapScreen implements Screen {
       const alpha = Math.min(1, (9 - this.age) / 1);
       ctx.globalAlpha = alpha * 0.92;
       fillRR(ctx, W / 2 - 300, H - 44, 600, 32, 8, 'rgba(20, 13, 10, 0.85)');
-      text(ctx, 'Move with W A S D. Walk into an enemy to fight it, or go around. Find the stairs.', W / 2, H - 27, {
+      text(ctx, hint('mapMove'), W / 2, H - 27, {
         size: 14,
         align: 'center',
         baseline: 'middle',
