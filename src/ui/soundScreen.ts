@@ -1,11 +1,13 @@
 // The sound check screen. Plays every sound in the game and sets the volume.
 import type { Action } from '../input';
 import type { Game, Screen } from '../game';
-import { C } from '../render/colors';
-import { Ctx, H, W, bar, drawMenu, fillRR, panel, poly, text } from '../render/draw';
+import { C, PAL } from '../render/colors';
+import { Ctx, H, W, bar, drawMenu, panel, text } from '../render/draw';
+import { Sprite, drawSprite, fillPx, lazy, makeSprite, snap } from '../render/pixel';
 import { SFX_NAMES, SfxName, sfx } from '../audio/sfx';
 import { hint } from './hints';
 import { menuInput } from './common';
+import { inset, splitLines } from './hud';
 
 /** A plain name for each sound, and when the game plays it. */
 const SOUND_INFO: Record<SfxName, { label: string; when: string }> = {
@@ -33,10 +35,35 @@ const SOUND_INFO: Record<SfxName, { label: string; when: string }> = {
 
 /** How many list rows fit on the screen at once. The list scrolls to keep the selected row in view. */
 const SHOWN = 9;
-const ROW_H = 34;
-const LIST_X = 100;
-const LIST_Y = 182;
-const LIST_W = 590;
+// The layout, in logical units (two per art pixel).
+/** Left and right edges of the text inside the panel. */
+const LEFT = 56;
+const RIGHT = 744;
+const VOL_Y = 112;
+const ROW_H = 28;
+const LIST_X = 48;
+const LIST_Y = 172;
+const LIST_W = 680;
+/** The scroll bar's track, right of the list. */
+const TRACK_X = 736;
+const DESC_W = 704;
+/** Nine rows of 28 end at y 424. The box below holds two lines. */
+const DESC_Y = 440;
+const DESC_H = 52;
+
+/** The scroll arrows: small gold triangles, 7 by 4 pixels with their outline. */
+const arrowUp: () => Sprite = lazy(() =>
+  makeSprite(9, 6, (p) => {
+    p.grid(['...Y...', '..YgY..', '.Ygggy.', 'ggggyyy'], { Y: PAL.gold2, g: PAL.gold1, y: PAL.gold0 }, 1, 1);
+    p.outline(C.outline);
+  }),
+);
+const arrowDown: () => Sprite = lazy(() =>
+  makeSprite(9, 6, (p) => {
+    p.grid(['YYgggyy', '.ggggy.', '..ggy..', '...y...'], { Y: PAL.gold2, g: PAL.gold1, y: PAL.gold0 }, 1, 1);
+    p.outline(C.outline);
+  }),
+);
 
 export class SoundScreen implements Screen {
   /** `top` is the first list row on screen. */
@@ -78,17 +105,18 @@ export class SoundScreen implements Screen {
   }
 
   render(ctx: Ctx): void {
-    ctx.fillStyle = C.bg;
-    ctx.fillRect(0, 0, W, H);
-    panel(ctx, 70, 24, 660, 552);
-    text(ctx, 'Sound check', 100, 74, { size: 32, bold: true, color: C.gold });
-    text(ctx, 'Hear every sound in the game and set how loud it is.', 100, 100, { size: 15, italic: true, color: C.inkDim });
+    fillPx(ctx, 0, 0, W, H, C.bg);
+    // The panel ends at y 560, leaving the strip below it free for the Sound off message.
+    panel(ctx, 32, 16, 736, 544);
+    text(ctx, 'Sound check', LEFT, 40, { size: 32, bold: true, color: C.gold, baseline: 'top' });
+    text(ctx, 'Hear every sound in the game and set how loud it is.', LEFT, 80, { size: 16, color: C.inkDim, baseline: 'top' });
 
+    // The volume: a label, a bar 9 pixels tall around the label's row, and the level.
     const vol = sfx.volume;
-    text(ctx, 'Volume', 100, 141, { size: 19, bold: true });
-    bar(ctx, 200, 128, 400, 18, vol, C.gold);
-    text(ctx, `${Math.round(vol * 10)} / 10`, 700, 141, { size: 19, bold: true, color: C.gold, align: 'right' });
-    if (sfx.muted) text(ctx, hint('soundMuted'), 100, 168, { size: 15, bold: true, color: C.ember });
+    text(ctx, 'Volume', LEFT, VOL_Y, { size: 16, bold: true, baseline: 'top' });
+    bar(ctx, 136, VOL_Y - 2, 520, 18, vol, C.gold, PAL.gold0);
+    text(ctx, `${Math.round(vol * 10)} / 10`, RIGHT, VOL_Y, { size: 16, bold: true, color: C.gold, align: 'right', baseline: 'top' });
+    if (sfx.muted) text(ctx, hint('soundMuted'), LEFT, VOL_Y + 26, { size: 16, bold: true, color: C.ember, baseline: 'top' });
 
     // The rows on screen now, drawn as one menu. The raw sound id sits on the right.
     const { index, top } = this.state;
@@ -101,29 +129,28 @@ export class SoundScreen implements Screen {
     for (let i = top; i < top + SHOWN; i++) {
       const name = SFX_NAMES[i];
       if (!name) continue;
-      const ry = LIST_Y + (i - top) * ROW_H + ROW_H / 2 - 1;
-      text(ctx, name, LIST_X + LIST_W - 14, ry, { size: 14, color: C.inkFaint, align: 'right', baseline: 'middle' });
+      const ry = LIST_Y + (i - top) * ROW_H + ROW_H / 2 - 2;
+      text(ctx, name, LIST_X + LIST_W - 12, ry, { size: 16, color: C.inkFaint, align: 'right', baseline: 'middle' });
     }
 
-    // A scroll bar, plus arrows when there are rows above or below.
+    // A scroll bar in a sunken track, with arrows above and below it when there are rows that way.
     const trackY = LIST_Y;
     const trackH = SHOWN * ROW_H - 4;
-    fillRR(ctx, 706, trackY, 6, trackH, 3, '#150e0b');
-    fillRR(ctx, 706, trackY + (trackH * top) / this.count, 6, (trackH * SHOWN) / this.count, 3, C.panelEdge);
-    if (top > 0) poly(ctx, [709, trackY - 12, 703, trackY - 4, 715, trackY - 4], C.inkDim);
-    if (top + SHOWN < this.count) poly(ctx, [709, trackY + trackH + 12, 703, trackY + trackH + 4, 715, trackY + trackH + 4], C.inkDim);
+    inset(ctx, TRACK_X, trackY, 12, trackH);
+    const thumbY = snap(trackY + 2 + ((trackH - 4) * top) / this.count);
+    const thumbH = snap(((trackH - 4) * SHOWN) / this.count);
+    fillPx(ctx, TRACK_X + 2, thumbY, 8, thumbH, C.panelEdge);
+    fillPx(ctx, TRACK_X + 2, thumbY, 2, thumbH, PAL.wood2);
+    fillPx(ctx, TRACK_X + 2, thumbY + thumbH - 2, 8, 2, PAL.wood0);
+    if (top > 0) drawSprite(ctx, arrowUp(), TRACK_X + 6, trackY - 8, { center: true });
+    if (top + SHOWN < this.count) drawSprite(ctx, arrowDown(), TRACK_X + 6, trackY + trackH + 8, { center: true });
 
-    fillRR(ctx, 100, 494, 600, 36, 8, C.panelLight);
+    // When the sound plays. Long lines wrap onto a second line in the box.
     const sel = SFX_NAMES[index];
-    text(ctx, sel ? `Plays when: ${SOUND_INFO[sel].when}` : 'Return to the title screen.', 116, 512, {
-      size: 15,
-      baseline: 'middle',
-    });
-    // Kept above y 558, where the game shows its Sound off and Sound on message.
-    text(ctx, hint('soundMenu'), 700, 550, {
-      size: 13,
-      color: C.inkFaint,
-      align: 'right',
-    });
+    const lines = splitLines(sel ? `Plays when: ${SOUND_INFO[sel].when}` : 'Return to the title screen.', DESC_W - 32);
+    inset(ctx, LIST_X, DESC_Y, DESC_W, DESC_H);
+    const ty = snap(DESC_Y + DESC_H / 2 - (lines.length * 22 - 8) / 2);
+    lines.forEach((line, i) => text(ctx, line, LIST_X + 16, ty + i * 22, { size: 16, baseline: 'top' }));
+    text(ctx, hint('soundMenu'), RIGHT, 526, { size: 16, color: C.inkFaint, align: 'right', baseline: 'top' });
   }
 }
