@@ -112,7 +112,7 @@ export class Battle {
       if (crit) dmg *= 1.5;
       const amount = Math.max(1, Math.round(dmg));
       this.enemyHp = Math.max(0, this.enemyHp - amount);
-      const lead = this.riposte ? 'You strike back from your guard' : crit ? 'A clean hit! You strike' : 'You strike';
+      const lead = this.riposte ? 'You strike back from your guard and hit' : crit ? 'A clean hit! You strike' : 'You strike';
       this.riposte = false;
       events.push(this.ev(`${lead} ${this.foe} for ${amount}.`, 'enemyHit', amount));
       if (this.enemyHp <= 0) {
