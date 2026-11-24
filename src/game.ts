@@ -18,6 +18,7 @@ import { EndScreen } from './ui/endScreen';
 import { HelpScreen } from './ui/helpScreen';
 import { RewardScreen } from './ui/rewardScreen';
 import { ShopScreen } from './ui/shopScreen';
+import { SoundScreen } from './ui/soundScreen';
 import { StartScreen } from './ui/startScreen';
 import { VendorScreen } from './ui/vendorScreen';
 import { sfx } from './audio/sfx';
@@ -107,6 +108,10 @@ export class Game {
 
   showShop(): void {
     this.screen = new ShopScreen(this);
+  }
+
+  showSound(): void {
+    this.screen = new SoundScreen(this);
   }
 
   startRun(): void {

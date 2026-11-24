@@ -2,29 +2,43 @@
 // Browsers only allow sound after the player presses a key, clicks or taps, so the audio
 // context is created on the first key press, click or tap.
 
-export type SfxName =
-  | 'move'
-  | 'pick'
-  | 'deny'
-  | 'step'
-  | 'encounter'
-  | 'ambush'
-  | 'hit'
-  | 'hurt'
-  | 'block'
-  | 'guard'
-  | 'heal'
-  | 'windup'
-  | 'flee'
-  | 'down'
-  | 'coin'
-  | 'levelUp'
-  | 'stairs'
-  | 'buy'
-  | 'win'
-  | 'lose';
+/** Every sound name. The SfxName type is made from this list, so the two can not drift apart. */
+export const SFX_NAMES = [
+  'move',
+  'pick',
+  'deny',
+  'step',
+  'encounter',
+  'ambush',
+  'hit',
+  'hurt',
+  'block',
+  'guard',
+  'heal',
+  'windup',
+  'flee',
+  'down',
+  'coin',
+  'levelUp',
+  'stairs',
+  'buy',
+  'win',
+  'lose',
+] as const;
+
+export type SfxName = (typeof SFX_NAMES)[number];
 
 const MUTE_KEY = 'keepfall.muted';
+const VOLUME_KEY = 'keepfall.volume';
+/** The master gain at volume 1. This was the only loudness before the volume setting. */
+const FULL_GAIN = 0.35;
+/** Full volume, so the game sounds as loud as it did before the setting existed. */
+export const DEFAULT_VOLUME = 1;
+
+/** Rounds to the nearest step of 0.1 and keeps it from 0 to 1. */
+function stepVolume(v: number): number {
+  return Math.round(Math.max(0, Math.min(1, v)) * 10) / 10;
+}
 
 interface Tone {
   /** Start frequency in Hz. */
@@ -41,6 +55,8 @@ interface Tone {
 
 class Sfx {
   muted = false;
+  /** From 0 to 1 in steps of 0.1. Kept apart from muted, so muting does not lose it. */
+  volume = DEFAULT_VOLUME;
   /** Names of the sounds played so far. Only used for testing. */
   readonly played: SfxName[] = [];
   private ctx: AudioContext | null = null;
@@ -52,6 +68,14 @@ class Sfx {
       this.muted = localStorage.getItem(MUTE_KEY) === '1';
     } catch {
       // Storage can be blocked. Sound just starts switched on.
+    }
+    try {
+      const stored = localStorage.getItem(VOLUME_KEY);
+      const v = stored === null || stored.trim() === '' ? NaN : Number(stored);
+      // Anything that is not a number from 0 to 1 is ignored.
+      if (Number.isFinite(v) && v >= 0 && v <= 1) this.volume = stepVolume(v);
+    } catch {
+      // Storage can be blocked. The volume just starts at the default.
     }
   }
 
@@ -71,6 +95,18 @@ class Sfx {
     return this.muted;
   }
 
+  /** Sets the volume, saves it, and changes the sound that is playing. Returns the new volume. */
+  setVolume(v: number): number {
+    this.volume = stepVolume(Number.isFinite(v) ? v : DEFAULT_VOLUME);
+    try {
+      localStorage.setItem(VOLUME_KEY, String(this.volume));
+    } catch {
+      // Not saved, but the new volume still works for this visit.
+    }
+    if (this.master) this.master.gain.value = FULL_GAIN * this.volume;
+    return this.volume;
+  }
+
   private ready(): AudioContext | null {
     try {
       if (!this.ctx) {
@@ -78,7 +114,7 @@ class Sfx {
         if (!AC) return null;
         this.ctx = new AC();
         this.master = this.ctx.createGain();
-        this.master.gain.value = 0.35;
+        this.master.gain.value = FULL_GAIN * this.volume;
         this.master.connect(this.ctx.destination);
       }
       if (this.ctx.state === 'suspended') void this.ctx.resume();
