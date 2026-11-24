@@ -91,7 +91,7 @@ export class BattleScreen implements Screen {
       if (isLast && over) {
         // The fight is over. Wait for the player before leaving.
         if (confirm && this.eventT > 0.35) {
-          this.game.endBattle(this.battle.outcome, this.mapEnemy);
+          this.game.endBattle(this.battle, this.mapEnemy);
         }
         return;
       }

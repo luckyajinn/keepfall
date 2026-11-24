@@ -5,7 +5,7 @@ import { Rng } from './rng';
 import type { Ctx } from './render/draw';
 import { Knight, newKnight } from './entities/knight';
 import type { MapEnemy } from './entities/enemies';
-import type { Outcome } from './battle/battle';
+import type { Battle } from './battle/battle';
 import { BattleScreen } from './battle/battleScreen';
 import { generateFloor } from './map/floor';
 import { MapScreen } from './map/mapScreen';
@@ -74,6 +74,9 @@ export class Game {
 
   update(dt: number): void {
     this.time += dt;
+    // A run is active from startRun to endRun: the map, battles, the reward screen and the vendor.
+    // The run is null on the title, help, end and shop screens, so they add no time.
+    if (this.run) this.run.stats.seconds += dt;
     const pressed = this.input.take().filter((action) => {
       if (action !== 'mute') return true;
       this.toast = { text: sfx.toggleMute() ? 'Sound off' : 'Sound on', until: this.time + 1.6 };
@@ -149,8 +152,12 @@ export class Game {
     this.screen = new BattleScreen(this, enemy, ambush);
   }
 
-  endBattle(outcome: Outcome, enemy: MapEnemy): void {
+  endBattle(battle: Battle, enemy: MapEnemy): void {
     if (!this.run || !this.map) return;
+    const outcome = battle.outcome;
+    // Add the fight's counts first, so a lost fight is part of the end screen numbers.
+    this.run.stats.potionsUsed += battle.potionsUsed;
+    this.run.stats.damageTaken += battle.damageTaken;
     if (outcome === 'lost') {
       this.endRun(false, enemy);
       return;
@@ -188,8 +195,11 @@ export class Game {
     this.enterFloor(Math.min(FINAL_FLOOR, this.run.floorNum + 1));
   }
 
-  /** `foe` is the enemy that beat the knight, when the run was lost. */
-  private endRun(won: boolean, foe?: MapEnemy): void {
+  /**
+   * `foe` is the enemy that beat the knight, when the run was lost.
+   * `gaveUp` is true when the player chose to end the run. It counts as a loss with no enemy.
+   */
+  private endRun(won: boolean, foe?: MapEnemy, gaveUp = false): void {
     const run = this.run;
     if (!run) return;
     const k = run.knight;
@@ -209,6 +219,11 @@ export class Game {
       goldSaved: k.gold,
       foeKind: foe?.stats.kind,
       foeName: foe?.stats.name,
+      gaveUp,
+      seconds: run.stats.seconds,
+      potionsUsed: run.stats.potionsUsed,
+      damageTaken: run.stats.damageTaken,
+      seed: run.seed,
     });
     this.run = null;
     this.map = null;

@@ -44,6 +44,10 @@ export class Battle {
   riposte = false;
   enraged = false;
   reward: BattleReward | null = null;
+  /** Potions drunk in this fight. A refused potion does not count. */
+  potionsUsed = 0;
+  /** Health the knight lost in this fight, after Guard. */
+  damageTaken = 0;
   private guarding = false;
   private sinceHeavy = 0;
 
@@ -122,6 +126,7 @@ export class Battle {
       events.push(this.ev('You raise your shield.', 'guard'));
     } else if (action === 'potion') {
       k.potions--;
+      this.potionsUsed++;
       const amount = heal(k, potionHeal(k));
       events.push(this.ev(`You drink a potion and heal ${amount}.`, 'heal', amount));
     } else {
@@ -166,7 +171,9 @@ export class Battle {
     let dmg = this.enemy.atk * mult * (this.enraged ? ENRAGE_MULT : 1) * this.rng.range(0.85, 1.15);
     if (this.guarding) dmg *= 1 - guardShare(k);
     const amount = Math.max(1, Math.round(dmg));
+    const before = k.hp;
     k.hp = Math.max(0, k.hp - amount);
+    this.damageTaken += before - k.hp;
     const line = this.guarding ? `${lead}. Your guard holds and you take ${amount}.` : `${lead} for ${amount}.`;
     events.push(this.ev(line, 'knightHit', amount, { blocked: this.guarding }));
     if (k.hp <= 0) {
