@@ -11,6 +11,7 @@ import { Floor, tileAt } from './floor';
 import { COLS, FINAL_FLOOR, ROWS, TILE, Tile } from './tiles';
 import { sfx } from '../audio/sfx';
 import { hint } from '../ui/hints';
+import { PauseScreen } from '../ui/pauseScreen';
 
 const KNIGHT_STEP = 0.13;
 const ENEMY_STEP = 0.32;
@@ -26,6 +27,8 @@ export class MapScreen implements Screen {
   private dir: Dir = 'down';
   private age = 0;
   private encounter: { enemy: MapEnemy; ambush: boolean; t: number } | null = null;
+  /** Escape was pressed during a step. The pause menu opens when the step ends. */
+  private pauseAsked = false;
 
   constructor(
     private readonly game: Game,
@@ -36,8 +39,12 @@ export class MapScreen implements Screen {
     this.dir = 'right';
   }
 
-  update(dt: number, _pressed: Action[]): void {
+  update(dt: number, pressed: Action[]): void {
     this.age += dt;
+    // Escape asks for the pause menu. It opens once the knight stands still. The request is only
+    // kept while a step is still going, so an encounter, an ambush or the stairs drop it.
+    const askPause = this.pauseAsked || pressed.includes('cancel');
+    this.pauseAsked = false;
     if (this.encounter) {
       this.encounter.t += dt;
       if (this.encounter.t >= ENCOUNTER_TIME) {
@@ -62,8 +69,14 @@ export class MapScreen implements Screen {
       // Checked every frame the knight stands still, so a second ambusher
       // next to the same tile still jumps out when the map comes back after a fight.
       if (this.checkAmbush()) return;
+      if (askPause) {
+        this.game.screen = new PauseScreen(this.game, this);
+        return;
+      }
       const dir = this.game.input.heldDir();
       if (dir) this.tryMove(dir);
+    } else {
+      this.pauseAsked = askPause;
     }
   }
 

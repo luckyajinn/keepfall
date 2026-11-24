@@ -5,12 +5,12 @@ import { Rng } from './rng';
 import type { Ctx } from './render/draw';
 import { Knight, newKnight } from './entities/knight';
 import type { MapEnemy } from './entities/enemies';
-import type { Outcome } from './battle/battle';
+import type { Battle } from './battle/battle';
 import { BattleScreen } from './battle/battleScreen';
 import { generateFloor } from './map/floor';
 import { MapScreen } from './map/mapScreen';
 import { FINAL_FLOOR } from './map/tiles';
-import { giveFloorReward } from './items/rewards';
+import { giveFloorReward, rollTrinket } from './items/rewards';
 import type { TrinketId } from './items/trinkets';
 import { VendorCounts, newVendorCounts } from './items/vendor';
 import { SaveData, loadSave, writeSave } from './meta/save';
@@ -18,6 +18,7 @@ import { EndScreen } from './ui/endScreen';
 import { HelpScreen } from './ui/helpScreen';
 import { RewardScreen } from './ui/rewardScreen';
 import { ShopScreen } from './ui/shopScreen';
+import { SoundScreen } from './ui/soundScreen';
 import { StartScreen } from './ui/startScreen';
 import { VendorScreen } from './ui/vendorScreen';
 import { sfx } from './audio/sfx';
@@ -25,6 +26,8 @@ import { C } from './render/colors';
 import { H, W, fillRR, text } from './render/draw';
 
 export interface Screen {
+  /** True for screens that stop the run clock while they are open, such as the pause menu. */
+  readonly pausesRun?: boolean;
   update(dt: number, pressed: Action[]): void;
   render(ctx: Ctx): void;
 }
@@ -55,6 +58,8 @@ export interface RunState {
 export class Game {
   readonly input: Input;
   readonly rng: Rng;
+  /** The seed for the first run of this visit. Later runs draw their own. */
+  private firstRunSeed: number | null;
   save: SaveData;
   screen: Screen;
   run: RunState | null = null;
@@ -67,12 +72,17 @@ export class Game {
   constructor(input: Input, seed: number) {
     this.input = input;
     this.rng = new Rng(seed);
+    this.firstRunSeed = seed >>> 0;
     this.save = loadSave();
     this.screen = new StartScreen(this);
   }
 
   update(dt: number): void {
     this.time += dt;
+    // A run is active from startRun to endRun: the map, battles, the reward screen and the vendor.
+    // The run is null on the title, help, end and shop screens, so they add no time.
+    // Time in the pause menu does not count either.
+    if (this.run && !this.screen.pausesRun) this.run.stats.seconds += dt;
     const pressed = this.input.take().filter((action) => {
       if (action !== 'mute') return true;
       this.toast = { text: sfx.toggleMute() ? 'Sound off' : 'Sound on', until: this.time + 1.6 };
@@ -101,6 +111,10 @@ export class Game {
     this.screen = new StartScreen(this);
   }
 
+  giveUp(): void {
+    this.endRun(false, undefined, true);
+  }
+
   showHelp(): void {
     this.screen = new HelpScreen(this);
   }
@@ -109,9 +123,16 @@ export class Game {
     this.screen = new ShopScreen(this);
   }
 
+  showSound(): void {
+    this.screen = new SoundScreen(this);
+  }
+
   startRun(): void {
     const knight = newKnight(this.save);
-    const seed = this.rng.int(0, 0xffffffff);
+    // The first run of a visit uses the seed the game started with, so the run seed shown on
+    // the end screen can be put in the address as ?seed= to get the same floors again.
+    const seed = this.firstRunSeed ?? this.rng.int(0, 0xffffffff);
+    this.firstRunSeed = null;
     this.run = {
       knight,
       floorNum: 1,
@@ -144,8 +165,12 @@ export class Game {
     this.screen = new BattleScreen(this, enemy, ambush);
   }
 
-  endBattle(outcome: Outcome, enemy: MapEnemy): void {
+  endBattle(battle: Battle, enemy: MapEnemy): void {
     if (!this.run || !this.map) return;
+    const outcome = battle.outcome;
+    // Add the fight's counts first, so a lost fight is part of the end screen numbers.
+    this.run.stats.potionsUsed += battle.potionsUsed;
+    this.run.stats.damageTaken += battle.damageTaken;
     if (outcome === 'lost') {
       this.endRun(false, enemy);
       return;
@@ -175,6 +200,8 @@ export class Game {
   }
 
   showVendor(): void {
+    // Each visit offers one trinket the knight does not own yet.
+    if (this.run) this.run.vendorTrinket = rollTrinket(this.run.knight, this.rng);
     this.screen = new VendorScreen(this);
   }
 
@@ -183,8 +210,11 @@ export class Game {
     this.enterFloor(Math.min(FINAL_FLOOR, this.run.floorNum + 1));
   }
 
-  /** `foe` is the enemy that beat the knight, when the run was lost. */
-  private endRun(won: boolean, foe?: MapEnemy): void {
+  /**
+   * `foe` is the enemy that beat the knight, when the run was lost.
+   * `gaveUp` is true when the player chose to end the run. It counts as a loss with no enemy.
+   */
+  private endRun(won: boolean, foe?: MapEnemy, gaveUp = false): void {
     const run = this.run;
     if (!run) return;
     const k = run.knight;
@@ -204,6 +234,11 @@ export class Game {
       goldSaved: k.gold,
       foeKind: foe?.stats.kind,
       foeName: foe?.stats.name,
+      gaveUp,
+      seconds: run.stats.seconds,
+      potionsUsed: run.stats.potionsUsed,
+      damageTaken: run.stats.damageTaken,
+      seed: run.seed,
     });
     this.run = null;
     this.map = null;

@@ -12,10 +12,13 @@ Everything is drawn in code on a canvas, and the sound effects are made in code 
 - Fights are turn based. Pick Attack, Guard, Potion or Flee with W and S and Enter, or press 1 to 4.
 - Guard blocks part of the next hit and makes your next Attack stronger. Guard when an enemy winds up a heavy blow.
 - Reach the stairs to clear a floor. Your lowest level item goes up one level, and there is a 1 in 4 chance of a trinket.
-- After floors 1 and 2 a vendor sells boosts that last until the run ends.
+- After floors 1 and 2 a vendor sells boosts that last until the run ends. Each visit also offers one trinket for 25 gold.
 - Floor 3 has no stairs. You must beat Mogrum the Ork.
 - When a run ends, win or lose, you keep your gold. Spend it in the shop on upgrades that stay for every run.
-- Press M to turn the sound off or on.
+- Press M to turn the sound off or on. The Sound entry on the title screen plays every sound and sets the volume.
+- Press Escape on the map to pause. From the pause menu you can give up the run and keep your gold.
+- The win and lose screens show how long the run took, potions used, damage taken and the run's seed.
+- On a phone or tablet, a direction pad and OK, Back and Sound buttons appear on the first touch. They sit under the game when the device is upright and at the sides when it is sideways.
 
 Progress is saved in your browser's local storage. Clearing the site data for the page resets it.
 
@@ -38,7 +41,7 @@ npm run build
 
 The files end up in `dist/`. Run `npm run preview` to try the build.
 
-Adding `?seed=123` to the address gives the same floor layouts and enemy placement each time, which helps when testing. Fights and rewards still play out differently, since they depend on what you do.
+Adding `?seed=123` to the address gives the same floor layouts and enemy placement for the first run of a visit, which helps when testing. The seed shown on the end screen can be used this way to see a run's floors again. Fights and rewards still play out differently, since they depend on what you do.
 
 ## Layout
 
@@ -63,9 +66,9 @@ src/
 
 The first playable version is in: start screen, 3 floors, map enemies and ambushers, menu battles, XP and gold, floor rewards, the vendor, the boss, win and lose screens, and the shop with saved gold.
 
-Sound effects and a first balance pass are in as well.
+Sound effects, a balance pass, touch controls, a pause menu, run stats and a sound check screen are in as well.
 
-Still to do: touch controls, and more balance tuning once real players have tried it.
+Still to do: try the touch controls and the sound on real devices, and more balance tuning once real players have tried it. `PLAN.md` lists the ideas for later.
 
 ## Tests
 

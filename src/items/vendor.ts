@@ -1,5 +1,7 @@
 // The vendor between floors. Everything sold here lasts for the current run only.
 import { Knight, heal } from '../entities/knight';
+import type { TrinketId } from './trinkets';
+import { giveTrinket } from './rewards';
 
 export type VendorItemId = 'potion' | 'whetstone' | 'tonic' | 'oil';
 
@@ -48,5 +50,16 @@ export function buyFromVendor(k: Knight, item: VendorItem, counts: VendorCounts)
       k.temp.guard += 0.06;
       break;
   }
+  return true;
+}
+
+/** Each vendor visit offers one trinket the knight does not own, at this fixed price. */
+export const VENDOR_TRINKET_PRICE = 25;
+
+/** Buys the offered trinket. Returns false and changes nothing when there is none, it is owned or gold is short. */
+export function buyVendorTrinket(k: Knight, id: TrinketId | null): boolean {
+  if (!id || k.trinkets.includes(id) || k.gold < VENDOR_TRINKET_PRICE) return false;
+  k.gold -= VENDOR_TRINKET_PRICE;
+  giveTrinket(k, id);
   return true;
 }

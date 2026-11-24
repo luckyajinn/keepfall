@@ -19,6 +19,21 @@ export interface RunSummary {
   /** The enemy that beat the knight. Only set when the run was lost. */
   foeKind?: EnemyKind;
   foeName?: string;
+  /** True when the player gave up the run. It counts as a loss with no enemy. */
+  gaveUp?: boolean;
+  /** Seconds played in the run. */
+  seconds: number;
+  potionsUsed: number;
+  /** Health the knight lost in fights, after Guard. */
+  damageTaken: number;
+  /** The run's seed. Each floor's layout is built from it. */
+  seed: number;
+}
+
+/** Whole minutes and seconds, such as "9:42". */
+export function formatTime(seconds: number): string {
+  const s = Math.max(0, Math.floor(seconds));
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 }
 
 /** "A Cellar Rat", "An ...", or the boss's own name. */
@@ -58,6 +73,13 @@ export class EndScreen implements Screen {
       text(ctx, 'The keep is yours!', W / 2, 135, { size: 40, bold: true, align: 'center', color: C.gold });
       text(ctx, 'Mogrum the Ork is beaten and the hall is quiet.', W / 2, 168, { size: 16, italic: true, align: 'center', color: C.inkDim });
       drawKnight(ctx, W / 2, 232, 84, 'down', t, false);
+    } else if (s.gaveUp) {
+      text(ctx, 'You turned back', W / 2, 135, { size: 40, bold: true, align: 'center', color: C.ember });
+      text(ctx, `You left the keep from floor ${s.floorNum}. Your gold is safe.`, W / 2, 168, { size: 16, italic: true, align: 'center', color: C.inkDim });
+      // The knight walks away, seen from behind.
+      ctx.globalAlpha = 0.7;
+      drawKnight(ctx, W / 2, 232, 84, 'up', t, false);
+      ctx.globalAlpha = 1;
     } else {
       text(ctx, 'You have fallen', W / 2, 135, { size: 40, bold: true, align: 'center', color: C.ember });
       text(ctx, `The keep holds, for now. You reached floor ${s.floorNum}.`, W / 2, 168, { size: 16, italic: true, align: 'center', color: C.inkDim });
@@ -72,18 +94,30 @@ export class EndScreen implements Screen {
         }
       }
     }
-    const rows: [string, string][] = [
-      ['Level reached', `${s.level}`],
-      ['Enemies beaten', `${s.kills}`],
-      ['Gold earned this run', `${s.goldEarned}`],
-      ['Gold saved for the shop', `${s.goldSaved}`],
+    // Two columns of run numbers, then the gold saved across the whole panel.
+    const columns: [string, string][][] = [
+      [
+        ['Level reached', `${s.level}`],
+        ['Enemies beaten', `${s.kills}`],
+        ['Gold earned', `${s.goldEarned}`],
+      ],
+      [
+        ['Time', formatTime(s.seconds)],
+        ['Potions used', `${s.potionsUsed}`],
+        ['Damage taken', `${s.damageTaken}`],
+      ],
     ];
-    rows.forEach(([label, value], i) => {
-      const y = 322 + i * 34;
-      const last = i === rows.length - 1;
-      text(ctx, label, 210, y, { size: 18, color: last ? C.gold : C.ink, bold: last });
-      text(ctx, value, 590, y, { size: 18, align: 'right', color: last ? C.gold : C.ink, bold: last });
+    columns.forEach((rows, col) => {
+      const x = col === 0 ? 190 : 420;
+      rows.forEach(([label, value], i) => {
+        const y = 326 + i * 28;
+        text(ctx, label, x, y, { size: 17 });
+        text(ctx, value, x + 190, y, { size: 17, align: 'right' });
+      });
     });
+    text(ctx, 'Gold saved for the shop', 190, 424, { size: 18, color: C.gold, bold: true });
+    text(ctx, `${s.goldSaved}`, 610, 424, { size: 18, align: 'right', color: C.gold, bold: true });
+    text(ctx, `Run seed ${s.seed}`, W / 2, 454, { size: 12, align: 'center', color: C.inkFaint });
     if (Math.sin(t * 5) > -0.3) {
       text(ctx, hint('toShop'), W / 2, 492, { size: 16, align: 'center', color: C.gold });
     }

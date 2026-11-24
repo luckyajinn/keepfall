@@ -2,12 +2,14 @@
 import { Rng } from '../../src/rng';
 import { emptySave, SaveData } from '../../src/meta/save';
 import { newKnight, maxHp, Knight } from '../../src/entities/knight';
-import { giveFloorReward } from '../../src/items/rewards';
+import { giveFloorReward, rollTrinket } from '../../src/items/rewards';
 import { makeEnemyStats, EnemyKind } from '../../src/entities/enemies';
 import { Battle } from '../../src/battle/battle';
-import { VENDOR_ITEMS, buyFromVendor, newVendorCounts } from '../../src/items/vendor';
+import { VENDOR_ITEMS, VENDOR_TRINKET_PRICE, buyFromVendor, buyVendorTrinket, newVendorCounts } from '../../src/items/vendor';
 
-interface Plan { fightShare: number; guards: boolean; potionAt: number; shop?: Partial<SaveData['upgrades']>; vendor?: boolean }
+// `trinket` buys the vendor's trinket when gold allows: 'first' before anything else, 'afterPotions' once potions are up to 3.
+// Plans without it do not roll the vendor trinket, so their random draws stay as they were.
+interface Plan { fightShare: number; guards: boolean; potionAt: number; shop?: Partial<SaveData['upgrades']>; vendor?: boolean; trinket?: 'first' | 'afterPotions' }
 
 function fight(k: Knight, kind: EnemyKind, floor: number, ambush: boolean, rng: Rng, plan: Plan): boolean {
   const b = new Battle(k, makeEnemyStats(kind, floor), ambush, rng);
@@ -45,8 +47,12 @@ function run(seed: number, plan: Plan) {
     if (floor < 3) {
       giveFloorReward(k, rng);
       if (plan.vendor !== false) {
+        // The game rolls the vendor's trinket as the vendor opens, right after the floor reward.
+        const offer = plan.trinket ? rollTrinket(k, rng) : null;
+        if (plan.trinket === 'first') buyVendorTrinket(k, offer);
         // Potions first when short, then whetstones.
         for (let n = 0; n < 6; n++) {
+          if (plan.trinket === 'afterPotions' && k.potions >= 3 && buyVendorTrinket(k, offer)) continue;
           const want = k.potions < 3 ? VENDOR_ITEMS[0] : VENDOR_ITEMS[1];
           if (!buyFromVendor(k, want, counts)) break;
         }
@@ -70,3 +76,6 @@ report('full clear, careful', { fightShare: 1, guards: true, potionAt: 0.4 });
 report('full clear, never guards', { fightShare: 1, guards: false, potionAt: 0.3 });
 report('full clear, careful, no vendor', { fightShare: 1, guards: true, potionAt: 0.4, vendor: false });
 report('full clear, careful, small shop', { fightShare: 1, guards: true, potionAt: 0.4, shop: { vigor: 2, might: 1 } });
+console.log(`vendor trinket at ${VENDOR_TRINKET_PRICE} gold:`);
+report('full clear, careful, trinket, potions', { fightShare: 1, guards: true, potionAt: 0.4, trinket: 'first' });
+report('full clear, careful, potions, trinket', { fightShare: 1, guards: true, potionAt: 0.4, trinket: 'afterPotions' });

@@ -7,10 +7,18 @@ import { nightSky } from './common';
 import { hint } from './hints';
 
 export class HelpScreen implements Screen {
-  constructor(private readonly game: Game) {}
+  /** Help can be opened from the pause menu. The run clock stays stopped while it is read. */
+  readonly pausesRun = true;
+  /** `back` runs when the player leaves. Without it the title screen comes back. */
+  constructor(
+    private readonly game: Game,
+    private readonly back?: () => void,
+  ) {}
 
   update(_dt: number, pressed: Action[]): void {
-    if (pressed.includes('confirm') || pressed.includes('cancel')) this.game.showStart();
+    if (!pressed.includes('confirm') && !pressed.includes('cancel')) return;
+    if (this.back) this.back();
+    else this.game.showStart();
   }
 
   render(ctx: Ctx): void {
@@ -25,6 +33,7 @@ export class HelpScreen implements Screen {
       'Clearing a floor upgrades your lowest level item, with a 1 in 4 chance of a trinket. A vendor then sells boosts that last for this run only.',
       'On floor 3 you must beat the Ork. When a run ends you keep your gold and can spend it in the shop on upgrades that last forever.',
       hint('helpSound'),
+      hint('helpPause'),
     ];
     let y = 136;
     for (const line of lines) {
