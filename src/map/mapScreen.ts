@@ -3,7 +3,9 @@ import type { Action, Dir } from '../input';
 import { DIR_VEC } from '../input';
 import type { Game, Screen } from '../game';
 import { C } from '../render/colors';
-import { Ctx, H, W, fillRR, hash2, text } from '../render/draw';
+import { Ctx, H, TextOpts, W, fillRR, hash2, text, textWidth } from '../render/draw';
+import { PX, drawSprite, fillPx, onGrid, snap, withAlpha } from '../render/pixel';
+import { Cell, FloorArt, PILLAR_RISE, STAIRS_FRAME, TILE_PX, TORCH_FRAME, buildFloorArt, floorArtOwner, tileArt } from '../render/tiles';
 import { drawEnemy, drawKnight } from '../render/sprites';
 import { drawHud, HUD_H } from '../ui/hud';
 import type { MapEnemy } from '../entities/enemies';
@@ -17,6 +19,21 @@ const KNIGHT_STEP = 0.13;
 const ENEMY_STEP = 0.32;
 const ENEMY_PAUSE = 0.5;
 const ENCOUNTER_TIME = 0.7;
+
+// Light, in tiles: full light within FULL of the knight or a torch, none past REACH. DARKEST is
+// the light level of a tile out of reach of both (see LIGHT_LEVELS in render/tiles.ts).
+const KNIGHT_FULL = 3;
+const KNIGHT_REACH = 10;
+const TORCH_FULL = 1.5;
+const TORCH_REACH = 4.5;
+const DARKEST = 2;
+/** Width in pixels of the dithered band at the edge of the light. */
+const SEAM_PX = 4;
+/** Ground shadows sit under the feet: 7 pixels below the middle of the tile, at 75%. */
+const SHADOW_Y = 14;
+const SHADOW_ALPHA = 0.75;
+/** Hints wider than this go on two lines. */
+const BANNER_TEXT_W = 720;
 
 export class MapScreen implements Screen {
   x: number;
@@ -175,6 +192,22 @@ export class MapScreen implements Screen {
   }
 
   // Drawing
+  //
+  // The still tiles of the floor are laid out once (buildFloorArt in render/tiles.ts) at five
+  // light levels. Each frame copies every tile from the level its light calls for, then draws the
+  // stairs and torches, the characters back to front, and the overlays. Light is worked out per
+  // tile: the torches' share once per floor, the knight's share each frame from where he is drawn.
+  // The stairs, the torches and every character are drawn after the light, so they always read.
+
+  private art: FloorArt | null = null;
+  /** The tiles the art was built from, to notice a floor whose tiles were changed (tests do this). The art is also rebuilt if another map screen took over the shared canvases. */
+  private artTiles = new Uint8Array(COLS * ROWS);
+  private torches: { x: number; y: number }[] = [];
+  private pillars: { x: number; y: number }[] = [];
+  /** How bright each tile is from the torches alone, 0 to 1. */
+  private torchLight = new Float32Array(COLS * ROWS);
+  /** The light level of each tile this frame. */
+  private light = new Uint8Array(COLS * ROWS);
 
   private px(tx: number): number {
     return tx * TILE + TILE / 2;
@@ -184,150 +217,180 @@ export class MapScreen implements Screen {
     return HUD_H + ty * TILE + TILE / 2;
   }
 
-  private drawTiles(ctx: Ctx): void {
+  /** Builds the floor's tile art and torch light, once per floor (or again if its tiles changed). */
+  private ensureArt(): FloorArt {
     const f = this.floor;
-    const t = this.game.time;
-    ctx.fillStyle = C.wall;
-    ctx.fillRect(0, HUD_H, W, H - HUD_H);
-    for (let y = 0; y < ROWS; y++) {
-      for (let x = 0; x < COLS; x++) {
-        const tile = tileAt(f, x, y);
-        const sx = x * TILE;
-        const sy = HUD_H + y * TILE;
-        const h = hash2(x + f.num * 31, y);
-        if (tile === Tile.Wall) {
-          if (tileAt(f, x, y + 1) !== Tile.Wall) {
-            // The front face of a wall, seen from above.
-            ctx.fillStyle = C.wallFace;
-            ctx.fillRect(sx, sy + 8, TILE, TILE - 8);
-            ctx.fillStyle = '#54402f';
-            ctx.fillRect(sx, sy + 8, TILE, 3);
-            ctx.fillStyle = C.wallFaceLine;
-            ctx.fillRect(sx, sy + 19, TILE, 1.5);
-            ctx.fillRect(sx + (h > 0.5 ? 10 : 20), sy + 11, 1.5, 8);
-            ctx.fillRect(sx + (h > 0.5 ? 22 : 6), sy + 20.5, 1.5, 11.5);
-          }
-          continue;
-        }
-        ctx.fillStyle = h > 0.5 ? C.floorA : C.floorB;
-        ctx.fillRect(sx, sy, TILE, TILE);
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.14)';
-        ctx.fillRect(sx, sy + TILE - 1, TILE, 1);
-        ctx.fillRect(sx + TILE - 1, sy, 1, TILE);
-        if (h > 0.88) {
-          ctx.fillStyle = C.floorCrack;
-          ctx.fillRect(sx + 8, sy + 12, 9, 1.5);
-          ctx.fillRect(sx + 16, sy + 13, 1.5, 7);
-        }
-        if (tileAt(f, x, y - 1) === Tile.Wall) {
-          const g = ctx.createLinearGradient(0, sy, 0, sy + 12);
-          g.addColorStop(0, 'rgba(0, 0, 0, 0.35)');
-          g.addColorStop(1, 'rgba(0, 0, 0, 0)');
-          ctx.fillStyle = g;
-          ctx.fillRect(sx, sy, TILE, 12);
-        }
-        if (tile === Tile.Stairs) this.drawStairs(ctx, sx, sy, t);
-      }
+    if (this.art && floorArtOwner() === this && f.tiles.every((v, i) => v === this.artTiles[i])) return this.art;
+    this.artTiles.set(f.tiles);
+    const isWall = (x: number, y: number) => tileAt(f, x, y) === Tile.Wall;
+    this.art = buildFloorArt(COLS, ROWS, isWall, (x, y) => hash2(x + f.num * 31, y), this);
+    this.pillars = [];
+    for (let i = 0; i < this.art.cells.length; i++) {
+      if (this.art.cells[i] === Cell.Pillar) this.pillars.push({ x: i % COLS, y: Math.floor(i / COLS) });
     }
-    // Torches on some wall faces.
+    // Torches on some wall faces, at the same spots as always.
+    this.torches = [];
     for (let y = 0; y < ROWS - 1; y++) {
       for (let x = 0; x < COLS; x++) {
-        if (tileAt(f, x, y) !== Tile.Wall || tileAt(f, x, y + 1) === Tile.Wall) continue;
+        if (!isWall(x, y) || isWall(x, y + 1)) continue;
         if (hash2(x * 7 + f.num, y * 13) < 0.82) continue;
-        const cx = x * TILE + TILE / 2;
-        const cy = HUD_H + y * TILE + 17;
-        const flick = 1 + Math.sin(t * 9 + x * 3) * 0.08 + Math.sin(t * 23 + y) * 0.04;
-        const g = ctx.createRadialGradient(cx, cy, 2, cx, cy, 70 * flick);
-        g.addColorStop(0, 'rgba(255, 179, 92, 0.30)');
-        g.addColorStop(1, 'rgba(255, 179, 92, 0)');
-        ctx.fillStyle = g;
-        ctx.fillRect(cx - 80, cy - 80, 160, 160);
-        ctx.fillStyle = '#5b4030';
-        ctx.fillRect(cx - 1.5, cy, 3, 9);
-        ctx.beginPath();
-        ctx.ellipse(cx, cy - 2, 3.5 * flick, 5.5 * flick, 0, 0, Math.PI * 2);
-        ctx.fillStyle = C.ember;
-        ctx.fill();
-        ctx.beginPath();
-        ctx.ellipse(cx, cy - 1, 1.8, 3, 0, 0, Math.PI * 2);
-        ctx.fillStyle = '#ffd98a';
-        ctx.fill();
+        this.torches.push({ x, y });
+      }
+    }
+    for (let y = 0; y < ROWS; y++) {
+      for (let x = 0; x < COLS; x++) {
+        let best = 0;
+        for (const t of this.torches) {
+          // The flame hangs low on the face, so measure from near the bottom of its tile.
+          const d = Math.hypot(x - t.x, (y - t.y - 0.4) * 1.1);
+          best = Math.max(best, lightFall(d, TORCH_FULL, TORCH_REACH));
+        }
+        this.torchLight[y * COLS + x] = best;
+      }
+    }
+    return this.art;
+  }
+
+  /** Works out the light level of every tile for a knight drawn at tile position (kx, ky). */
+  private updateLight(kx: number, ky: number): void {
+    const cells = this.art!.cells;
+    for (let y = 0; y < ROWS; y++) {
+      for (let x = 0; x < COLS; x++) {
+        const i = y * COLS + x;
+        const b = Math.max(this.torchLight[i], lightFall(Math.hypot(x - kx, y - ky), KNIGHT_FULL, KNIGHT_REACH));
+        // Whole ramp steps only (the even levels). The half levels are used for the edges.
+        // The tops of walls are never lit fully: they stay a dark mass, so the light does not
+        // show up as blocks in the solid rock between rooms.
+        const level = 2 * Math.round((1 - b) * DARKEST);
+        this.light[i] = cells[i] === Cell.Top ? Math.max(2, level) : level;
       }
     }
   }
 
-  private drawStairs(ctx: Ctx, sx: number, sy: number, t: number): void {
-    ctx.fillStyle = '#2a1d17';
-    ctx.fillRect(sx + 2, sy + 2, TILE - 4, TILE - 4);
-    const shades = ['#8a6a3c', '#a78045', '#c4974d', '#e0b057'];
-    shades.forEach((color, i) => {
-      ctx.fillStyle = color;
-      ctx.fillRect(sx + 4 + i * 2, sy + 22 - i * 6, TILE - 8 - i * 4, 5);
+  private drawTiles(ctx: Ctx, kx: number, ky: number): void {
+    const art = this.ensureArt();
+    this.updateLight(kx, ky);
+    const light = this.light;
+    const at = (x: number, y: number) => (x < 0 || y < 0 || x >= COLS || y >= ROWS ? -1 : light[y * COLS + x]);
+    onGrid(ctx, (toX, toY) => {
+      const ox = toX(0);
+      const oy = toY(HUD_H);
+      const copy = (level: number, sx: number, sy: number, w: number, h: number) =>
+        ctx.drawImage(art.levels[level], sx, sy, w, h, ox + sx, oy + sy, w, h);
+      // One copy per run of tiles in a row that share a light level.
+      for (let y = 0; y < ROWS; y++) {
+        let x = 0;
+        while (x < COLS) {
+          const level = light[y * COLS + x];
+          let n = 1;
+          while (x + n < COLS && light[y * COLS + x + n] === level) n++;
+          copy(level, x * TILE_PX, y * TILE_PX, n * TILE_PX, TILE_PX);
+          x += n;
+        }
+      }
+      // Where a tile is a step darker than the one beside it, the edge of the light is a
+      // dithered band (the half level between the two) along the darker tile's side.
+      const S = SEAM_PX;
+      for (let y = 0; y < ROWS; y++) {
+        for (let x = 0; x < COLS; x++) {
+          const level = light[y * COLS + x];
+          if (level === 0) continue;
+          const half = level - 1;
+          const sx = x * TILE_PX;
+          const sy = y * TILE_PX;
+          if (at(x - 1, y) === level - 2) copy(half, sx, sy, S, TILE_PX);
+          if (at(x + 1, y) === level - 2) copy(half, sx + TILE_PX - S, sy, S, TILE_PX);
+          if (at(x, y - 1) === level - 2) copy(half, sx, sy, TILE_PX, S);
+          if (at(x, y + 1) === level - 2) copy(half, sx, sy + TILE_PX - S, TILE_PX, S);
+        }
+      }
     });
-    ctx.strokeStyle = `rgba(242, 184, 75, ${0.55 + Math.sin(t * 3) * 0.3})`;
-    ctx.lineWidth = 2;
-    ctx.strokeRect(sx + 2, sy + 2, TILE - 4, TILE - 4);
+    const t = this.game.time;
+    if (this.floor.stairs) this.drawStairs(ctx, this.floor.stairs.x * TILE, HUD_H + this.floor.stairs.y * TILE, t);
+    for (const torch of this.torches) {
+      if (this.art!.cells[torch.y * COLS + torch.x] !== Cell.Pillar) this.drawTorch(ctx, torch.x, torch.y, t);
+    }
+  }
+
+  private drawTorch(ctx: Ctx, x: number, y: number, t: number): void {
+    const frames = tileArt().torch;
+    // Each torch flickers on its own beat.
+    const frame = Math.floor(t / TORCH_FRAME + x * 2 + y) % frames.length;
+    drawSprite(ctx, frames[frame], x * TILE, HUD_H + y * TILE);
+  }
+
+  private drawStairs(ctx: Ctx, sx: number, sy: number, t: number): void {
+    const frames = tileArt().stairs;
+    drawSprite(ctx, frames[Math.floor(t / STAIRS_FRAME) % frames.length], sx, sy);
   }
 
   render(ctx: Ctx): void {
     const run = this.game.run;
     if (!run) return;
     const t = this.game.time;
-    this.drawTiles(ctx);
-
-    // Enemies, drawn back to front.
-    const enemies = this.floor.enemies.filter((e) => !e.hidden).sort((a, b) => a.y - b.y);
-    for (const e of enemies) {
-      const ex = this.px(e.fromX + (e.x - e.fromX) * e.moveT);
-      const ey = this.py(e.fromY + (e.y - e.fromY) * e.moveT);
-      const faceLeft = e.x < e.fromX || (e.moveT >= 1 && this.x < e.x);
-      ctx.globalAlpha = e.dazed > 0 ? 0.45 : 1;
-      if (e.stats.boss) {
-        drawEnemy(ctx, e.stats.kind, ex, ey - 14, 68, t, faceLeft);
-      } else {
-        drawEnemy(ctx, e.stats.kind, ex, ey - 2, 30, t + e.id, faceLeft);
-      }
-      ctx.globalAlpha = 1;
-    }
-
-    // The knight.
-    const kx = this.px(this.fromX + (this.x - this.fromX) * this.moveT);
-    const ky = this.py(this.fromY + (this.y - this.fromY) * this.moveT);
-    drawKnight(ctx, kx, ky - 3, 30, this.dir, t, this.moveT < 1);
-
-    // Soft darkness away from the knight.
-    const g = ctx.createRadialGradient(kx, ky, 90, kx, ky, 460);
-    g.addColorStop(0, 'rgba(12, 7, 5, 0)');
-    g.addColorStop(1, 'rgba(12, 7, 5, 0.45)');
-    ctx.fillStyle = g;
+    // The knight's drawn position, on the pixel grid.
+    const kx = snap(this.px(this.fromX + (this.x - this.fromX) * this.moveT));
+    const ky = snap(this.py(this.fromY + (this.y - this.fromY) * this.moveT));
+    ctx.fillStyle = C.bgDeep;
     ctx.fillRect(0, HUD_H, W, H - HUD_H);
+    this.drawTiles(ctx, (kx - TILE / 2) / TILE, (ky - HUD_H - TILE / 2) / TILE);
+
+    // The characters, back to front by the row their feet are on.
+    const ta = tileArt();
+    const drawn: { y: number; draw: () => void }[] = [];
+    for (const e of this.floor.enemies) {
+      if (e.hidden) continue;
+      const ex = snap(this.px(e.fromX + (e.x - e.fromX) * e.moveT));
+      const ey = snap(this.py(e.fromY + (e.y - e.fromY) * e.moveT));
+      const faceLeft = e.x < e.fromX || (e.moveT >= 1 && this.x < e.x);
+      const fx = { alpha: e.dazed > 0 ? 0.5 : 1 };
+      drawn.push({
+        y: ey,
+        draw: () => {
+          if (e.stats.boss) {
+            // The boss's 32 pixel box stands on its tile and reaches up into the tile above.
+            drawSprite(ctx, ta.shadowBig, ex, ey + SHADOW_Y, { center: true, alpha: SHADOW_ALPHA * fx.alpha });
+            drawEnemy(ctx, e.stats.kind, ex, ey - TILE / 2, 'small', t, faceLeft, fx);
+          } else {
+            drawSprite(ctx, ta.shadow, ex, ey + SHADOW_Y, { center: true, alpha: SHADOW_ALPHA * fx.alpha });
+            drawEnemy(ctx, e.stats.kind, ex, ey, 'small', t + e.id, faceLeft, fx);
+          }
+        },
+      });
+    }
+    // Pillars stand among the characters, so one in front covers whoever is behind it.
+    for (const p of this.pillars) {
+      drawn.push({
+        y: this.py(p.y),
+        draw: () => {
+          drawSprite(ctx, ta.pillar[this.light[p.y * COLS + p.x]], p.x * TILE, HUD_H + p.y * TILE - PILLAR_RISE * PX);
+          if (this.torches.some((o) => o.x === p.x && o.y === p.y)) this.drawTorch(ctx, p.x, p.y, t);
+        },
+      });
+    }
+    drawn.push({
+      y: ky + 1,
+      draw: () => {
+        drawSprite(ctx, ta.shadow, kx, ky + SHADOW_Y, { center: true, alpha: SHADOW_ALPHA });
+        drawKnight(ctx, kx, ky, 'small', this.dir, t, this.moveT < 1);
+      },
+    });
+    drawn.sort((a, b) => a.y - b.y);
+    for (const d of drawn) d.draw();
 
     drawHud(ctx, run.knight, run.floorNum);
 
-    // Floor title and first hints.
+    // Floor title and first hints. They fade out in 25% steps.
     if (this.age < 3.2 && !this.encounter) {
-      const alpha = Math.min(1, (3.2 - this.age) / 0.8);
-      ctx.globalAlpha = alpha;
-      const title = run.floorNum >= FINAL_FLOOR ? 'Floor 3: The High Hall' : `Floor ${run.floorNum}`;
-      text(ctx, title, W / 2, HUD_H + 60, { size: 34, bold: true, align: 'center', color: C.gold, shadow: true });
-      ctx.globalAlpha = 1;
+      withAlpha(ctx, (3.2 - this.age) / 0.8, () => {
+        const title = run.floorNum >= FINAL_FLOOR ? 'Floor 3: The High Hall' : `Floor ${run.floorNum}`;
+        text(ctx, title, W / 2, HUD_H + 60, { size: 34, bold: true, align: 'center', color: C.gold, shadow: true });
+      });
     }
     if (run.floorNum === 1 && this.age < 9 && !this.encounter) {
-      const alpha = Math.min(1, (9 - this.age) / 1);
-      ctx.globalAlpha = alpha * 0.92;
-      fillRR(ctx, W / 2 - 300, H - 44, 600, 32, 8, 'rgba(20, 13, 10, 0.85)');
-      text(ctx, hint('mapMove'), W / 2, H - 27, {
-        size: 14,
-        align: 'center',
-        baseline: 'middle',
-      });
-      ctx.globalAlpha = 1;
+      withAlpha(ctx, 9 - this.age, () => this.drawBanner(ctx, hint('mapMove')));
     } else if (run.floorNum >= FINAL_FLOOR && this.age < 9 && !this.encounter) {
-      const alpha = Math.min(1, (9 - this.age) / 1);
-      ctx.globalAlpha = alpha * 0.92;
-      fillRR(ctx, W / 2 - 220, H - 44, 440, 32, 8, 'rgba(20, 13, 10, 0.85)');
-      text(ctx, 'No stairs here. Beat the Ork to take the keep.', W / 2, H - 27, { size: 14, align: 'center', baseline: 'middle' });
-      ctx.globalAlpha = 1;
+      withAlpha(ctx, 9 - this.age, () => this.drawBanner(ctx, 'No stairs here. Beat the Ork to take the keep.'));
     }
 
     // The moment before a fight.
@@ -335,8 +398,11 @@ export class MapScreen implements Screen {
       const p = this.encounter.t / ENCOUNTER_TIME;
       const e = this.encounter.enemy;
       const ex = this.px(e.x);
-      const ey = this.py(e.y) - (e.stats.boss ? 54 : 24);
-      text(ctx, '!', ex, ey - Math.sin(Math.min(1, p * 3) * Math.PI) * 6, {
+      // Just above the enemy's head: the boss's box is two tiles tall.
+      const ey = this.py(e.y) - (e.stats.boss ? 52 : 20);
+      // The mark hops up 4 pixels and back, in whole pixels.
+      const hop = snap(Math.sin(Math.min(1, p * 3) * Math.PI) * 8);
+      text(ctx, '!', ex, ey - hop, {
         size: 26,
         bold: true,
         align: 'center',
@@ -346,11 +412,54 @@ export class MapScreen implements Screen {
       if (this.encounter.ambush) {
         text(ctx, 'Ambush!', W / 2, H / 2, { size: 54, bold: true, align: 'center', color: C.ember, shadow: true });
       }
-      // Dark bars close in from the top and bottom.
+      // Dark bars close in from the top and bottom, in steps of 4 pixels.
       const cover = Math.max(0, (p - 0.35) / 0.65);
-      ctx.fillStyle = C.bgDeep;
-      ctx.fillRect(0, 0, W, (H / 2) * cover);
-      ctx.fillRect(0, H - (H / 2) * cover, W, (H / 2) * cover);
+      const bar = Math.min(H / 2, Math.round(((H / 2) * cover) / 8) * 8);
+      if (bar > 0) {
+        fillPx(ctx, 0, 0, W, bar, C.bgDeep);
+        fillPx(ctx, 0, H - bar, W, bar, C.bgDeep);
+      }
     }
   }
+
+  /** A hint along the bottom of the map: a dark see-through box (75%) in a thin gold frame, with one or two centered lines. */
+  private drawBanner(ctx: Ctx, str: string): void {
+    const o = { size: 14, align: 'center' as const, baseline: 'middle' as const };
+    const lines = splitLines(str, BANNER_TEXT_W, o);
+    const lineH = 22;
+    const w = snap(Math.max(...lines.map((l) => textWidth(l, o))) + 28);
+    const h = lines.length * lineH + 12;
+    const x = snap(W / 2 - w / 2);
+    const y = H - 8 - h;
+    withAlpha(ctx, 0.75, () => fillRR(ctx, x, y, w, h, 1, C.bgDeep));
+    // A 1 pixel dark gold frame with chamfered corners.
+    fillPx(ctx, x + 2, y, w - 4, 2, C.goldDark);
+    fillPx(ctx, x + 2, y + h - 2, w - 4, 2, C.goldDark);
+    fillPx(ctx, x, y + 2, 2, h - 4, C.goldDark);
+    fillPx(ctx, x + w - 2, y + 2, 2, h - 4, C.goldDark);
+    lines.forEach((line, i) => text(ctx, line, W / 2, y + 6 + lineH / 2 + i * lineH, o));
+  }
+}
+
+/** Light in the open, from 1 within `full` tiles down to 0 at `reach` tiles. */
+function lightFall(d: number, full: number, reach: number): number {
+  return Math.max(0, Math.min(1, (reach - d) / (reach - full)));
+}
+
+/** Splits a hint into lines no wider than maxW logical units, balanced so two lines come out about even. */
+function splitLines(str: string, maxW: number, o: TextOpts): string[] {
+  if (textWidth(str, o) <= maxW) return [str];
+  const words = str.split(' ');
+  let best: string[] = [str];
+  let bestW = Infinity;
+  for (let i = 1; i < words.length; i++) {
+    const a = words.slice(0, i).join(' ');
+    const b = words.slice(i).join(' ');
+    const wMax = Math.max(textWidth(a, o), textWidth(b, o));
+    if (wMax < bestW) {
+      bestW = wMax;
+      best = [a, b];
+    }
+  }
+  return best;
 }

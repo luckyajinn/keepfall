@@ -2,12 +2,26 @@
 import type { Action } from '../input';
 import type { Game, Screen } from '../game';
 import { C } from '../render/colors';
-import { Ctx, H, W, drawMenu, fillRR, panel, text } from '../render/draw';
-import { iconCoin } from '../render/sprites';
+import { Ctx, H, W, drawMenu, panel, text } from '../render/draw';
+import { fillPx } from '../render/pixel';
 import { SHOP_ITEMS, buyFromShop, isMaxed, shopPrice } from '../meta/shop';
 import { sfx } from '../audio/sfx';
 import { menuInput } from './common';
 import { hint } from './hints';
+import { inset, purse } from './hud';
+
+// The layout, in logical units (two per art pixel).
+/** Left and right edges of the text inside the panel. */
+const LEFT = 56;
+const RIGHT = 744;
+const MENU_X = 48;
+const MENU_Y = 112;
+const MENU_W = 704;
+/** Eight rows of 34 end at y 384, above the description box. */
+const ROW_H = 34;
+/** The column of "2 / 10" counts, right of the longest upgrade name. */
+const COUNT_X = 260;
+const DESC_Y = 400;
 
 export class ShopScreen implements Screen {
   private state = { index: 0 };
@@ -46,37 +60,43 @@ export class ShopScreen implements Screen {
 
   render(ctx: Ctx): void {
     const save = this.game.save;
-    ctx.fillStyle = C.bg;
-    ctx.fillRect(0, 0, W, H);
-    panel(ctx, 70, 24, 660, 552);
-    text(ctx, 'The Shop', 100, 74, { size: 32, bold: true, color: C.gold });
-    text(ctx, 'What you buy here is yours in every run from now on.', 100, 100, { size: 15, italic: true, color: C.inkDim });
-    iconCoin(ctx, 610, 64, 20);
-    text(ctx, `${save.gold}`, 626, 72, { size: 24, bold: true, color: C.gold });
+    fillPx(ctx, 0, 0, W, H, C.bg);
+    // The panel ends at y 560, leaving the strip below it free for the Sound off message.
+    panel(ctx, 32, 16, 736, 544);
+    text(ctx, 'The Shop', LEFT, 40, { size: 32, bold: true, color: C.gold, baseline: 'top' });
+    text(ctx, 'What you buy here is yours in every run from now on.', LEFT, 80, { size: 16, color: C.inkDim, baseline: 'top' });
+    purse(ctx, RIGHT, 36, save.gold);
 
+    const sel = this.state.index;
+    const counts: string[] = [];
     const rows = SHOP_ITEMS.map((item) => {
       const maxed = isMaxed(item, save);
       const price = shopPrice(item, save);
+      counts.push(`${save.upgrades[item.id]} / ${item.max}`);
       return {
-        label: `${item.name}   ${save.upgrades[item.id]} / ${item.max}`,
+        label: item.name,
         right: maxed ? 'max' : `${price} gold`,
         dim: maxed || save.gold < price,
       };
     });
     rows.push({ label: 'Start a new run', right: '', dim: false });
     rows.push({ label: 'Back to the title', right: '', dim: false });
-    drawMenu(ctx, rows, this.state.index, 100, 122, 600, 42, 19);
+    drawMenu(ctx, rows, sel, MENU_X, MENU_Y, MENU_W, ROW_H, 18);
+    // How many of each upgrade are owned, in a column of their own, in the same color as their row.
+    counts.forEach((count, i) => {
+      const color = rows[i].dim ? C.inkFaint : i === sel ? C.gold : C.ink;
+      text(ctx, count, COUNT_X, MENU_Y + i * ROW_H + ROW_H / 2 - 2, { size: 16, color, baseline: 'middle', bold: i === sel });
+    });
 
-    fillRR(ctx, 100, 466, 600, 50, 8, C.panelLight);
-    const sel = this.state.index;
     const desc =
       sel < SHOP_ITEMS.length
         ? SHOP_ITEMS[sel].text
         : sel === SHOP_ITEMS.length
           ? 'Head back into the keep with your upgrades.'
           : 'Return to the title screen.';
-    text(ctx, desc, 120, 497, { size: 17 });
-    if (this.note) text(ctx, this.note, 100, 546, { size: 15, color: C.ember });
-    text(ctx, hint('menuBuy'), 700, 546, { size: 13, color: C.inkFaint, align: 'right' });
+    inset(ctx, MENU_X, DESC_Y, MENU_W, 38);
+    text(ctx, desc, MENU_X + 16, DESC_Y + 12, { size: 16, baseline: 'top' });
+    if (this.note) text(ctx, this.note, LEFT, 452, { size: 16, color: C.ember, baseline: 'top' });
+    text(ctx, hint('menuBuy'), RIGHT, 526, { size: 16, color: C.inkFaint, align: 'right', baseline: 'top' });
   }
 }

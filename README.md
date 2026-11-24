@@ -2,7 +2,7 @@
 
 KeepFall is a small single-player roguelite that runs in the browser. A knight fights up through a keep of 3 floors and has to beat the Ork on the last one. A run takes about 10 minutes.
 
-Everything is drawn in code on a canvas, and the sound effects are made in code too. There are no image or sound files.
+It has a 16-bit retro pixel look. Everything is drawn in code on a 400 by 300 pixel grid with one fixed set of 32 colors, and the pixel font and the sound effects are made in code too. There are no image, font or sound files.
 
 ## How to play
 
@@ -58,7 +58,7 @@ src/
   items/           gear, trinkets, floor rewards, the vendor
   meta/            the shop and saved progress
   ui/              HUD, one file per menu screen, and the control hints
-  render/          canvas helpers, colors and sprites
+  render/          the pixel tools, the color set, the pixel font, sprites and tiles
   audio/           sound effects made in code
 ```
 

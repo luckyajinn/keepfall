@@ -3,11 +3,13 @@ import type { Action } from '../input';
 import type { Game, Screen } from '../game';
 import { C } from '../render/colors';
 import { Ctx, H, W, panel, text } from '../render/draw';
-import { drawEnemy, drawKnight } from '../render/sprites';
+import { drawSprite, fillPx, fromPx } from '../render/pixel';
+import { drawEnemy, drawIcon, drawKnight, spriteSize } from '../render/sprites';
 import type { EnemyKind } from '../entities/enemies';
 import { sfx } from '../audio/sfx';
 import { nightSky } from './common';
 import { hint } from './hints';
+import { STAGE_FLOOR, STAGE_H, STAGE_W, stage } from './titleArt';
 
 export interface RunSummary {
   won: boolean;
@@ -61,39 +63,43 @@ export class EndScreen implements Screen {
     const s = this.sum;
     const t = this.game.time;
     if (s.won) {
-      nightSky(ctx, t);
-      ctx.fillStyle = 'rgba(18, 12, 10, 0.45)';
-      ctx.fillRect(0, 0, W, H);
+      // The title backdrop, a step deeper into the night so the panel stands out.
+      nightSky(ctx, t, true);
     } else {
-      ctx.fillStyle = C.bgDeep;
-      ctx.fillRect(0, 0, W, H);
+      fillPx(ctx, 0, 0, W, H, C.bgDeep);
     }
-    panel(ctx, 150, 70, 500, 460);
+    const top = 24;
+    panel(ctx, 96, top, 608, 552);
+
+    // The title, the line under it, and the picture in its little scene.
+    const title = s.won ? 'The keep is yours!' : s.gaveUp ? 'You turned back' : 'You have fallen';
+    const line = s.won
+      ? 'Mogrum the Ork is beaten and the hall is quiet.'
+      : s.gaveUp
+        ? `You left the keep from floor ${s.floorNum}. Your gold is safe.`
+        : `The keep holds, for now. You reached floor ${s.floorNum}.`;
+    text(ctx, title, W / 2, top + 48, { size: 40, bold: true, align: 'center', color: s.won ? C.gold : C.ember, shadow: true });
+    text(ctx, line, W / 2, top + 74, { size: 16, align: 'center', color: C.inkDim });
+
+    const scene = stage(s.won ? 'win' : s.gaveUp ? 'gaveUp' : 'lose');
+    const sx = W / 2 - fromPx(STAGE_W) / 2;
+    const sy = top + 88;
+    drawSprite(ctx, scene, sx, sy);
+    // Every picture stands on the floor of the scene: the bottom of its box on the same line.
+    const ground = sy + fromPx(STAGE_H - 2 - STAGE_FLOOR + 6);
     if (s.won) {
-      text(ctx, 'The keep is yours!', W / 2, 135, { size: 40, bold: true, align: 'center', color: C.gold });
-      text(ctx, 'Mogrum the Ork is beaten and the hall is quiet.', W / 2, 168, { size: 16, italic: true, align: 'center', color: C.inkDim });
-      drawKnight(ctx, W / 2, 232, 84, 'down', t, false);
+      drawKnight(ctx, W / 2, ground - spriteSize('knight', 'large').h / 2, 'large', 'down', t, false);
     } else if (s.gaveUp) {
-      text(ctx, 'You turned back', W / 2, 135, { size: 40, bold: true, align: 'center', color: C.ember });
-      text(ctx, `You left the keep from floor ${s.floorNum}. Your gold is safe.`, W / 2, 168, { size: 16, italic: true, align: 'center', color: C.inkDim });
-      // The knight walks away, seen from behind.
-      ctx.globalAlpha = 0.7;
-      drawKnight(ctx, W / 2, 232, 84, 'up', t, false);
-      ctx.globalAlpha = 1;
-    } else {
-      text(ctx, 'You have fallen', W / 2, 135, { size: 40, bold: true, align: 'center', color: C.ember });
-      text(ctx, `The keep holds, for now. You reached floor ${s.floorNum}.`, W / 2, 168, { size: 16, italic: true, align: 'center', color: C.inkDim });
-      if (s.foeKind) {
-        // The boss is drawn a little larger, and lower so its raised club stays clear of the line above.
-        const boss = s.foeKind === 'boss';
-        ctx.globalAlpha = 0.7;
-        drawEnemy(ctx, s.foeKind, W / 2, boss ? 234 : 228, boss ? 72 : 68, t);
-        ctx.globalAlpha = 1;
-        if (s.foeName) {
-          text(ctx, `${foeTitle(s.foeKind, s.foeName)} got the better of you.`, W / 2, 290, { size: 15, align: 'center', color: C.inkDim });
-        }
+      // The knight walks away, seen from behind, out through the door.
+      drawKnight(ctx, W / 2, ground - spriteSize('knight', 'large').h / 2, 'large', 'up', t, false);
+    } else if (s.foeKind) {
+      // Every enemy at its large size, the boss too: his 96 pixels fill the scene from floor to top.
+      drawEnemy(ctx, s.foeKind, W / 2, ground - spriteSize(s.foeKind, 'large').h / 2, 'large', t, false);
+      if (s.foeName) {
+        text(ctx, `${foeTitle(s.foeKind, s.foeName)} got the better of you.`, W / 2, sy + fromPx(STAGE_H) + 22, { size: 15, align: 'center', color: C.inkDim });
       }
     }
+
     // Two columns of run numbers, then the gold saved across the whole panel.
     const columns: [string, string][][] = [
       [
@@ -107,19 +113,25 @@ export class EndScreen implements Screen {
         ['Damage taken', `${s.damageTaken}`],
       ],
     ];
+    const statsY = sy + fromPx(STAGE_H) + 52;
     columns.forEach((rows, col) => {
-      const x = col === 0 ? 190 : 420;
+      const x = col === 0 ? 136 : 424;
       rows.forEach(([label, value], i) => {
-        const y = 326 + i * 28;
+        const y = statsY + i * 24;
         text(ctx, label, x, y, { size: 17 });
-        text(ctx, value, x + 190, y, { size: 17, align: 'right' });
+        text(ctx, value, x + 240, y, { size: 17, align: 'right', color: C.ink });
       });
     });
-    text(ctx, 'Gold saved for the shop', 190, 424, { size: 18, color: C.gold, bold: true });
-    text(ctx, `${s.goldSaved}`, 610, 424, { size: 18, align: 'right', color: C.gold, bold: true });
-    text(ctx, `Run seed ${s.seed}`, W / 2, 454, { size: 12, align: 'center', color: C.inkFaint });
+    // The gold saved, on a lighter band with a coin.
+    const gy = statsY + 3 * 24 + 4;
+    fillPx(ctx, 120, gy, 560, 28, C.panelLight);
+    fillPx(ctx, 120, gy + 26, 560, 2, C.outline);
+    drawIcon(ctx, 'coin', 140, gy + 13, 'small');
+    text(ctx, 'Gold saved for the shop', 156, gy + 14, { size: 18, color: C.gold, bold: true, baseline: 'middle' });
+    text(ctx, `${s.goldSaved}`, 664, gy + 14, { size: 18, align: 'right', color: C.gold, bold: true, baseline: 'middle' });
+    text(ctx, `Run seed ${s.seed}`, W / 2, gy + 52, { size: 12, align: 'center', color: C.inkFaint });
     if (Math.sin(t * 5) > -0.3) {
-      text(ctx, hint('toShop'), W / 2, 492, { size: 16, align: 'center', color: C.gold });
+      text(ctx, hint('toShop'), W / 2, top + 526, { size: 16, align: 'center', color: C.gold, shadow: true });
     }
   }
 }

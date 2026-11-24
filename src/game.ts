@@ -16,6 +16,8 @@ import { VendorCounts, newVendorCounts } from './items/vendor';
 import { SaveData, loadSave, writeSave } from './meta/save';
 import { EndScreen } from './ui/endScreen';
 import { HelpScreen } from './ui/helpScreen';
+import { HUD_H } from './ui/hud';
+import { PauseScreen } from './ui/pauseScreen';
 import { RewardScreen } from './ui/rewardScreen';
 import { ShopScreen } from './ui/shopScreen';
 import { SoundScreen } from './ui/soundScreen';
@@ -23,7 +25,8 @@ import { StartScreen } from './ui/startScreen';
 import { VendorScreen } from './ui/vendorScreen';
 import { sfx } from './audio/sfx';
 import { C } from './render/colors';
-import { H, W, fillRR, text } from './render/draw';
+import { H, W, panel, text, textWidth } from './render/draw';
+import { withAlpha } from './render/pixel';
 
 export interface Screen {
   /** True for screens that stop the run clock while they are open, such as the pause menu. */
@@ -100,10 +103,17 @@ export class Game {
   render(ctx: Ctx): void {
     this.screen.render(ctx);
     if (this.toast && this.time < this.toast.until) {
-      ctx.globalAlpha = Math.min(1, (this.toast.until - this.time) / 0.4);
-      fillRR(ctx, W / 2 - 70, H - 42, 140, 34, 8, 'rgba(20, 13, 10, 0.92)');
-      text(ctx, this.toast.text, W / 2, H - 24, { size: 16, bold: true, align: 'center', baseline: 'middle', color: C.gold });
-      ctx.globalAlpha = 1;
+      // A small pixel panel at the right edge. On the map (and the pause menu over it) it sits just
+      // under the HUD, clear of the hint along the bottom. Elsewhere it sits in the bottom right
+      // corner, below the panels of the menu screens. It fades out in 25% steps over its last 0.4 seconds.
+      const toast = this.toast;
+      const onMap = !!this.map && (this.screen === this.map || this.screen instanceof PauseScreen);
+      withAlpha(ctx, Math.min(1, (toast.until - this.time) / 0.4), () => {
+        const w = textWidth(toast.text) + 20;
+        const y = onMap ? HUD_H + 6 : H - 34;
+        panel(ctx, W - 4 - w, y, w, 30);
+        text(ctx, toast.text, W - 4 - w / 2, y + 8, { size: 16, align: 'center', baseline: 'top', color: C.gold });
+      });
     }
   }
 

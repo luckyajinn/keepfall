@@ -15,7 +15,8 @@
       body {
         margin: 0;
         height: 100%;
-        background: #120c0a;
+        /* The deepest color in the game's color set (src/render/colors.ts). */
+        background: #140c0a;
         overflow: hidden;
         overscroll-behavior: none;
         -webkit-text-size-adjust: 100%;
@@ -39,10 +40,18 @@
         -webkit-touch-callout: none;
         -webkit-tap-highlight-color: transparent;
       }
+      /* The canvas holds the 400 by 300 pixel grid. It is scaled up with nearest neighbor so every
+         art pixel stays a crisp square. src/main.ts picks the size. Older browsers need the first lines. */
       #game {
         display: block;
-        background: #1b1310;
+        flex: none;
+        background: #22150f;
         outline: none;
+        image-rendering: -moz-crisp-edges;
+        image-rendering: -webkit-optimize-contrast;
+        image-rendering: crisp-edges;
+        image-rendering: pixelated;
+        -ms-interpolation-mode: nearest-neighbor;
       }
       #touch-controls {
         display: none;
@@ -58,49 +67,36 @@
         position: absolute;
         pointer-events: auto;
       }
-      .tc-pad svg {
-        display: block;
+      /* Every control face is pixel art on canvases at native size (src/ui/touch.ts), enlarged with
+         nearest neighbor like the game. touch.ts sizes each control to whole art pixels. */
+      .tc-face,
+      .tc-lit {
+        position: absolute;
+        left: 0;
+        top: 0;
         width: 100%;
         height: 100%;
-        overflow: visible;
+        pointer-events: none;
+        image-rendering: -moz-crisp-edges;
+        image-rendering: -webkit-optimize-contrast;
+        image-rendering: crisp-edges;
+        image-rendering: pixelated;
       }
-      .tc-cross {
-        fill: #2a1d17;
-        stroke: #8a6a3c;
-        stroke-width: 3;
-        stroke-linejoin: round;
-      }
+      /* A held arm of the pad is a lit copy of that arm, laid over the rest. */
       .tc-lit {
-        fill: #3a2a21;
+        visibility: hidden;
       }
-      .tc-tri {
-        fill: #bfa57a;
-      }
-      .tc-hub {
-        fill: #1b1310;
-        stroke: #8a6a3c;
-        stroke-width: 2;
-      }
-      .tc-pad .on .tc-lit {
-        fill: #5a3f2c;
-      }
-      .tc-pad .on .tc-tri {
-        fill: #f2b84b;
+      .tc-lit.on {
+        visibility: visible;
       }
       .tc-block {
         display: grid;
-        gap: 10px;
       }
       #touch-controls[data-layout='bar'] .tc-block {
-        grid-template-columns: 76px 88px;
-        grid-template-rows: 1fr 1fr;
         grid-template-areas: 'sound ok' 'back ok';
       }
       #touch-controls[data-layout='side'] .tc-block {
-        grid-template-columns: 1fr;
-        grid-template-rows: 48fr 56fr 76fr;
         grid-template-areas: 'sound' 'back' 'ok';
-        gap: 12px;
       }
       .tc-sound {
         grid-area: sound;
@@ -112,30 +108,32 @@
         grid-area: ok;
       }
       .tc-btn {
+        position: relative;
+        display: block;
         margin: 0;
         padding: 0;
         min-width: 0;
-        font: bold 17px Georgia, 'Times New Roman', serif;
-        color: #f4e4c1;
-        background: linear-gradient(#3a2a21, #2a1d17);
-        border: 2px solid #8a6a3c;
-        border-radius: 12px;
-        box-shadow: 0 3px 0 #0b0706;
+        border: 0;
+        background: none;
         touch-action: none;
         user-select: none;
         -webkit-user-select: none;
       }
-      .tc-ok {
-        font-size: 22px;
-        color: #f2b84b;
-        border-color: #b07a22;
+      .tc-held,
+      .tc-btn.on .tc-rest {
+        visibility: hidden;
       }
-      .tc-btn.on {
-        background: #5a3f2c;
-        border-color: #f2b84b;
-        color: #f2b84b;
-        box-shadow: 0 1px 0 #0b0706;
-        transform: translateY(2px);
+      .tc-btn.on .tc-held {
+        visibility: visible;
+      }
+      /* The button's name for screen readers. The label on screen is drawn in the pixel font. */
+      .tc-name {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
       }
     </style>
   </head>

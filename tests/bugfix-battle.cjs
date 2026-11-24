@@ -179,6 +179,17 @@ const { section, arena, waitScreen, drain, choose, recordText, drawnTexts, sound
     let drawn = await drawnTexts(page);
     t.ok(rowColor(drawn, '3  Potion') === norm(C.inkFaint), 'Potion row is dimmed at full health', rowColor(drawn, '3  Potion'));
     t.ok(rowColor(drawn, '2  Guard') === norm(C.ink), 'Guard row is not dimmed (the color check can tell the two apart)', rowColor(drawn, '2  Guard'));
+    // The same on the canvas itself: count the pixels of each text color inside each row label's box.
+    const inks = (label) => page.evaluate(([label, ink, faint]) => {
+      const r = window.keepfallText.filter((x) => x.s === label).pop(); if (!r) return null;
+      const d = document.getElementById('game').getContext('2d').getImageData(r.x, r.y, r.w, r.h).data;
+      const hex = (i) => '#' + [d[i], d[i + 1], d[i + 2]].map((v) => v.toString(16).padStart(2, '0')).join('');
+      let n = { ink: 0, faint: 0 }; for (let i = 0; i < d.length; i += 4) { const c = hex(i); if (c === ink) n.ink++; else if (c === faint) n.faint++; }
+      return n;
+    }, [label, norm(C.ink), norm(C.inkFaint)]);
+    const potionPx = await inks('3  Potion'); const guardPx = await inks('2  Guard');
+    t.ok(potionPx && potionPx.faint >= 20 && potionPx.ink === 0, 'on the canvas the Potion label is drawn in the dim color only', JSON.stringify(potionPx));
+    t.ok(guardPx && guardPx.ink >= 20 && guardPx.faint === 0, 'on the canvas the Guard label is drawn in the normal color', JSON.stringify(guardPx));
 
     const before = await page.evaluate(() => { const g = window.keepfall; const k = g.run.knight; return { hp: k.hp, potions: k.potions, enemyHp: g.screen.battle.enemyHp, rng: g.rng.s }; });
     await soundMark(page);

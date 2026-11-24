@@ -44,17 +44,13 @@ const screenName = (page) => page.evaluate(() => window.keepfall.screen.construc
     await page.evaluate(() => { window.keepfall.run.knight.gold += 40; });
     await page.keyboard.press('Escape');
     await page.waitForFunction(() => window.keepfall.screen.constructor.name === 'PauseScreen');
-    await page.evaluate(() => {
-      window.__texts = [];
-      const proto = CanvasRenderingContext2D.prototype; const orig = proto.fillText;
-      proto.fillText = function (str, ...rest) { window.__texts.push(String(str)); return orig.call(this, str, ...rest); };
-    });
     await page.keyboard.press('4'); await page.waitForTimeout(80);
     t.ok((await screenName(page)) === 'PauseScreen', 'the first pick of give up only asks again');
     await page.keyboard.press('4');
     await page.waitForFunction(() => window.keepfall.screen.constructor.name === 'EndScreen');
-    await page.evaluate(() => { window.__texts = []; }); await page.waitForTimeout(200);
-    const end = await page.evaluate(() => ({ sum: window.keepfall.screen.sum, save: window.keepfall.save, texts: window.__texts.join(' | ') }));
+    await page.waitForTimeout(200);
+    // The strings drawn in the last frame (the pixel font's dev hook, see src/render/font.ts).
+    const end = await page.evaluate(() => ({ sum: window.keepfall.screen.sum, save: window.keepfall.save, texts: window.keepfallText.map((x) => x.s).join(' | ') }));
     t.ok(end.sum.gaveUp === true && end.sum.won === false && !end.sum.foeKind, 'the summary says the run was given up, with no enemy');
     t.ok(end.texts.includes('You turned back') && !end.texts.includes('You have fallen'), 'the end screen uses the given up wording');
     t.ok(end.save.gold === 40 && end.save.runs === 1 && end.save.wins === 0, 'gold is saved and the run counts, with no win', JSON.stringify({ gold: end.save.gold, runs: end.save.runs, wins: end.save.wins }));

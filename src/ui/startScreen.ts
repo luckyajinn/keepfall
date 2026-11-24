@@ -1,12 +1,15 @@
 // The title screen.
 import type { Action } from '../input';
 import type { Game, Screen } from '../game';
-import { C } from '../render/colors';
+import { C, PAL } from '../render/colors';
 import { Ctx, H, W, drawMenu, panel, text } from '../render/draw';
-import { drawKnight, iconCoin } from '../render/sprites';
+import { textLog } from '../render/font';
+import { devicePoint, drawSprite, fromPx } from '../render/pixel';
+import { drawIcon, drawKnight } from '../render/sprites';
 import { sfx } from '../audio/sfx';
 import { menuInput, nightSky } from './common';
 import { hint } from './hints';
+import { LOGO_TEXT, logo, sparkleFrames } from './titleArt';
 
 export class StartScreen implements Screen {
   private state = { index: 0 };
@@ -25,19 +28,45 @@ export class StartScreen implements Screen {
   render(ctx: Ctx): void {
     const t = this.game.time;
     nightSky(ctx, t);
-    drawKnight(ctx, 230, 505, 110, 'right', t, false);
-    text(ctx, 'KeepFall', 60, 126, { size: 84, bold: true, color: C.gold, shadow: true });
-    text(ctx, 'Three floors. One fat Ork. Take the keep.', 64, 166, { size: 20, italic: true, color: C.ink, shadow: true });
+    // The knight stands on the near hill and looks across the valley at the keep.
+    drawKnight(ctx, 200, 500, 'large', 'right', t, false);
+    drawLogo(ctx, 52, 34, t);
+    text(ctx, 'Three floors. One fat Ork. Take the keep.', 58, 146, { size: 20, color: C.ink, shadow: true });
 
-    // The title sits a little high to make room for 4 menu rows, so the lines under the menu stay clear of the knight.
-    panel(ctx, 60, 200, 300, 192);
-    drawMenu(ctx, [{ label: 'Start a run' }, { label: 'Shop' }, { label: 'How to play' }, { label: 'Sound' }], this.state.index, 72, 214, 276, 42, 20);
+    panel(ctx, 52, 166, 264, 176);
+    drawMenu(ctx, [{ label: 'Start a run' }, { label: 'Shop' }, { label: 'How to play' }, { label: 'Sound' }], this.state.index, 62, 176, 244, 40, 20);
 
     const s = this.game.save;
-    iconCoin(ctx, 72, 410, 16);
-    text(ctx, `${s.gold} gold saved`, 86, 416, { size: 16, color: C.gold, shadow: true });
+    drawIcon(ctx, 'coin', 66, 368, 'small');
+    text(ctx, `${s.gold} gold saved`, 82, 368, { size: 16, color: C.gold, shadow: true, baseline: 'middle' });
     const best = s.bestFloor > 0 ? `    Best floor ${s.bestFloor}` : '';
-    text(ctx, `Runs ${s.runs}    Wins ${s.wins}${best}`, 64, 438, { size: 14, color: C.inkDim, shadow: true });
-    text(ctx, hint('menuPick'), W - 20, H - 16, { size: 13, color: C.inkDim, align: 'right', shadow: true });
+    text(ctx, `Runs ${s.runs}    Wins ${s.wins}${best}`, 58, 398, { size: 14, color: C.inkDim, shadow: true });
+    text(ctx, hint('menuPick'), W - 16, H - 12, { size: 13, color: C.inkDim, align: 'right', shadow: true });
   }
 }
+
+/** The logo sprite with its top left at (x, y), and now and then a glint on one of its letters. */
+function drawLogo(ctx: Ctx, x: number, y: number, t: number): void {
+  const img = logo();
+  drawSprite(ctx, img, x, y);
+  // The tests read drawn text from the text record; the logo is a sprite, so it adds itself.
+  if (import.meta.env.DEV) {
+    const [dx, dy] = devicePoint(ctx, x, y);
+    textLog.push({ s: LOGO_TEXT, color: PAL.gold1, x: dx, y: dy, w: img.w, h: img.h });
+  }
+  // A glint every few seconds, on the next letter each time: 5 steps of a tenth of a second.
+  const period = 3.2;
+  const step = Math.floor((t % period) / 0.1);
+  if (step < 0 || step > 4) return;
+  const spot = SPARKS[Math.floor(t / period) % SPARKS.length];
+  const frame = [0, 1, 2, 1, 0][step];
+  drawSprite(ctx, sparkleFrames()[frame], x + fromPx(spot[0]), y + fromPx(spot[1]), { center: true });
+}
+
+/** Where the glint shows on the logo, in its pixels: the top corners of K, the F and the last l. */
+const SPARKS: readonly [number, number][] = [
+  [2, 2],
+  [82, 2],
+  [134, 2],
+  [58, 14],
+];

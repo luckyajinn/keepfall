@@ -2,7 +2,7 @@
 
 Written 2026-11-23. A planning pass read all of the code, and its claims were then checked against the files. Three of the bugs below were also reproduced in a browser.
 
-Items 1 to 6 are done, at the owner's request. Items 7 to 12 are not approved yet. The owner picks what gets built next and in what order. See "Questions for the owner" at the end.
+Items 1 to 6 are done, at the owner's request. On 2026-11-24 the owner also had the whole look changed to 16-bit retro pixel art, which was not in this plan; see `HANDOFF.md`. New art for the items below must follow the rules at the top of `src/render/pixel.ts`. Items 7 to 12 are not approved yet. The owner picks what gets built next and in what order. See "Questions for the owner" at the end.
 
 Effort sizes: small is under about 150 lines, medium is 150 to 400, large is over 400.
 
