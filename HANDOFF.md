@@ -14,7 +14,7 @@ Step 7 (a balance pass and sound effects) is built, checked in a browser, and me
 
 All nine bugs listed in `PLAN.md` were fixed on 2026-11-23 by five agents working in parallel, each reviewed and then tested together. The fixes are merged to `main` and pushed (owner OK given on 2026-11-24).
 
-Plan items 2 to 6 were built on 2026-11-24 by parallel agents and combined on the branch `next-features`: a sound check screen with volume, run stats on the end screen, touch controls, a trinket for sale at the vendor, and a pause menu with a way to give up the run. They are tested together but not merged to `main` yet. That needs the owner's OK.
+Plan items 2 to 6 were built on 2026-11-24 by parallel agents and combined on the branch `next-features`, then merged: a sound check screen with volume, run stats on the end screen, touch controls, a trinket for sale at the vendor, and a pause menu with a way to give up the run. They were tested together and merged to `main` on 2026-11-24 with the owner's OK.
 
 Built and checked in headless Chromium:
 
@@ -54,7 +54,6 @@ Not done yet: touch controls. The sound has only been checked for running withou
 
 ## Open items
 
-- The branch `next-features` waits for the owner's OK to merge into `main`.
 - Nobody has listened to the sound yet. The Sound entry on the title screen plays each one.
 - Touch controls and sound on touch have only been checked with emulation in a headless browser, not on a real phone or tablet.
 - No person has played the game yet. Everything so far was played by test scripts.
